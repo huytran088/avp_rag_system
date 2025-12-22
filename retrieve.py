@@ -1,9 +1,25 @@
 import json
 import numpy as np
 import faiss
+import warnings
+import os
+import sys
+from io import StringIO
+
+# Suppress all tokenizer warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+# Temporarily redirect stderr to suppress transformers tokenizer messages
+_original_stderr = sys.stderr
+sys.stderr = StringIO()
+
 # from sentence_transformers import SentenceTransformer, CrossEncoder
 from FlagEmbedding import FlagModel, FlagReranker
 from typing import List, Dict, Optional
+
+# Restore stderr
+sys.stderr = _original_stderr
 
 class CodeRetriever:
     """
@@ -27,8 +43,24 @@ class CodeRetriever:
         # Load the knowledge base
         print(f"Loading knowledge base from {knowledge_base_path}...")
         with open(knowledge_base_path, "r") as f:
-            self.knowledge_base = json.load(f)
-        print(f"Loaded {len(self.knowledge_base)} code snippets.")
+            data = json.load(f)
+
+        # Support both old and new formats
+        if isinstance(data, list):
+            # Old format - flat array
+            self.knowledge_base = data
+            print(f"Loaded {len(self.knowledge_base)} code snippets (legacy format).")
+        elif isinstance(data, dict) and "chunks" in data:
+            # New format - with metadata wrapper
+            self.knowledge_base = data["chunks"]
+            metadata = data.get("metadata", {})
+            tracking_method = metadata.get("tracking_method", "unknown")
+            last_ingestion = metadata.get("last_ingestion", "unknown")
+            print(f"Loaded {len(self.knowledge_base)} code snippets (tracked format).")
+            print(f"  Tracking method: {tracking_method}")
+            print(f"  Last ingestion: {last_ingestion}")
+        else:
+            raise ValueError(f"Unknown knowledge base format in {knowledge_base_path}")
         
         # Init the Embedding Model
         use_fp16 = (device == "cuda")
