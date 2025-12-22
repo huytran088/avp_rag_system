@@ -1,0 +1,40 @@
+fun linear_search(collection, target):
+    index = 0
+    for item in collection:
+        if (item == target):
+            return index
+        end if
+
+        // Manual increment since we don't have a 'range' loop HERE
+        index = index + 1
+    end for
+
+    return -1
+end fun
+
+fun binary_search(collection, target, size): 
+    low = 0
+    high = size - 1
+
+    while (low <= high):
+        // Calculate middle index
+        mid = (low + high) / 2
+        
+        // Get value at the middle
+        val = collection[mid]
+        
+        if (val == target):
+            return mid
+        end if
+        
+        if (val < target):
+            low = mid + 1
+        end if
+        
+        if (val > target):
+            high = mid - 1
+        end if
+    end while
+
+    return -1
+end fun

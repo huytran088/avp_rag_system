@@ -1,0 +1,23 @@
+fun countdown_timer(start_val):
+    current = start_val
+    
+    while (current > 0):
+        current = current - 1
+        
+        // Example of exiting a scope
+        if (current == 5):
+            break
+        end if
+    end while
+    
+    return current
+end fun
+
+fun check_status(is_active, has_error):
+    // Demonstrating 'and' / 'or' operators
+    if (is_active and has_error):
+        return False
+    else:
+        return True
+    end if
+end fun

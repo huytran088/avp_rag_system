@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: AVP Pseudocode RAG system\n\n- ANTLR4 grammar and parser for AVP pseudocode language\n- Two-stage retrieval with BGE embeddings and FAISS\n- RAG generation pipeline for LLM code generation\n- Sample AVP algorithms and utilities\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+    ]
+  }
+}
