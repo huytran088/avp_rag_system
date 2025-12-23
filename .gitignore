@@ -32,3 +32,9 @@ code_knowledge_base.json
 # OS
 .DS_Store
 Thumbs.db
+
+# uv
+uv.lock
+
+# Claude Code
+.claude/settings.local.json
