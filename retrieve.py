@@ -6,20 +6,26 @@ import os
 import sys
 from io import StringIO
 
-# Suppress all tokenizer warnings
+from typing import List, Dict, Optional
+
+# Suppress tokenizer warnings (safe — only affects Python warnings, not errors)
 warnings.filterwarnings('ignore', category=UserWarning)
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-# Temporarily redirect stderr to suppress transformers tokenizer messages
-_original_stderr = sys.stderr
-sys.stderr = StringIO()
-
-# from sentence_transformers import SentenceTransformer, CrossEncoder
-from FlagEmbedding import FlagModel, FlagReranker
-from typing import List, Dict, Optional
+# Import FlagEmbedding with clear error handling instead of stderr suppression
+try:
+    from FlagEmbedding import FlagModel, FlagReranker
+except ImportError as e:
+    print(f"Error importing FlagEmbedding: {e}")
+    print()
+    print("This is likely a version mismatch between FlagEmbedding and transformers.")
+    print("To fix, try one of the following:")
+    print("  Option A: uv pip install --upgrade FlagEmbedding")
+    print("  Option B: uv pip install transformers==4.44.2")
+    sys.exit(1)
 
 # Restore stderr
-sys.stderr = _original_stderr
+# sys.stderr = _original_stderr
 
 class CodeRetriever:
     """

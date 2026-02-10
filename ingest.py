@@ -9,7 +9,8 @@ from tracking import (
     load_existing_chunks,
     save_with_metadata,
     detect_changed_files,
-    update_metadata
+    update_metadata,
+    remove_deleted_from_metadata
 )
 
 # This class defines HOW we extract data from the code
@@ -88,7 +89,7 @@ if __name__ == "__main__":
 
     # Detect changed files
     print(f"\nScanning {data_folder} for .avp files...")
-    changed_files, unchanged_files = detect_changed_files(data_folder, metadata)
+    changed_files, unchanged_files, deleted_files = detect_changed_files(data_folder, metadata)
 
     print(f"\nChanged files: {len(changed_files)}")
     for f in changed_files:
@@ -98,35 +99,56 @@ if __name__ == "__main__":
     for f in unchanged_files:
         print(f"  - {os.path.basename(f)}")
 
-    # Start with existing chunks, but remove chunks from changed files
+    print(f"\nDeleted files: {len(deleted_files)}")
+    for f in deleted_files:
+        print(f"  - {os.path.basename(f)}")
+
+    # Remove deleted files from metadata
+    if deleted_files:
+        print(f"\nRemoving {len(deleted_files)} deleted file(s) from metadata...")
+        metadata = remove_deleted_from_metadata(metadata, deleted_files)
+
+    # Start with existing chunks, but remove chunks from changed/deleted files
     all_code_chunks = []
+    excluded_files = set(changed_files) | set(deleted_files)
     if existing_chunks:
         print(f"\nPreserving {len(existing_chunks)} existing chunks...")
-        # Keep only chunks from unchanged files
+        # Keep only chunks from unchanged files (exclude changed and deleted)
         for chunk in existing_chunks:
             chunk_source = chunk.get("source_file")
-            if chunk_source in unchanged_files:
+            if chunk_source not in excluded_files:
                 all_code_chunks.append(chunk)
         print(f"Preserved {len(all_code_chunks)} chunks from unchanged files.")
 
     # Process changed files
+    failed_files = []
     if changed_files:
         print(f"\nProcessing {len(changed_files)} changed file(s)...")
         for full_path in changed_files:
             filename = os.path.basename(full_path)
             print(f"  Parsing {filename}...")
 
-            # Parse file with source tracking
-            chunks = parse_file(full_path, source_file=full_path)
-            all_code_chunks.extend(chunks)
+            try:
+                # Parse file with source tracking
+                chunks = parse_file(full_path, source_file=full_path)
+                all_code_chunks.extend(chunks)
 
-            # Update metadata for this file
-            function_names = [chunk["name"] for chunk in chunks]
-            metadata = update_metadata(metadata, full_path, function_names)
+                # Update metadata for this file
+                function_names = [chunk["name"] for chunk in chunks]
+                metadata = update_metadata(metadata, full_path, function_names)
 
-            print(f"    Extracted {len(chunks)} function(s): {', '.join(function_names)}")
+                print(f"    Extracted {len(chunks)} function(s): {', '.join(function_names)}")
+            except Exception as e:
+                failed_files.append((full_path, str(e)))
+                print(f"    ERROR: Failed to parse {filename}: {e}")
     else:
         print("\nNo files changed. Knowledge base is up to date.")
+
+    # Report failed files
+    if failed_files:
+        print(f"\nWARNING: {len(failed_files)} file(s) failed to parse:")
+        for path, error in failed_files:
+            print(f"  - {os.path.basename(path)}: {error}")
 
     # Save with metadata wrapper
     print(f"\nSaving knowledge base...")

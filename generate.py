@@ -1,12 +1,12 @@
 import os
-import json
 from retrieve import retrieve_code  # Importing our retrieval function
+import anthropic
 
 # --- CONFIGURATION ---
-# If you have an OpenAI or Gemini API Key, set it here to make it real.
-# Otherwise, leave as None to see the "Simulation" output.
-API_KEY = None  
-MODEL_NAME = "gpt-4" # or "gemini-pro"
+# Set ANTHROPIC_API_KEY environment variable to enable generation
+# Optionally set ANTHROPIC_MODEL to use a different model
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
 def generate_solution(user_request):
     print(f"\nProcessing Request: '{user_request}'...")
@@ -17,7 +17,7 @@ def generate_solution(user_request):
     
     if not context_snippets:
         print("No relevant code found in knowledge base.")
-        return
+        return None
 
     # 2. AUGMENT the prompt
     # We build a prompt that includes the retrieved code as "reference material"
@@ -53,16 +53,30 @@ Rules:
     print(prompt)
     print("="*60)
 
-    if API_KEY:
-        # Placeholder for actual API call (e.g., using openai or google-generativeai)
-        # client = OpenAI(api_key=API_KEY)
-        # response = client.chat.completions.create(...)
-        # print(response.choices[0].message.content)
-        pass
+    if ANTHROPIC_API_KEY:
+        print(f"\nCalling {ANTHROPIC_MODEL}...")
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=1024,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        generated_code = message.content[0].text
+        print("\n" + "="*60)
+        print("      GENERATED CODE")
+        print("="*60)
+        print(generated_code)
+        print("="*60)
+        return generated_code
     else:
-        print("\n[SIMULATION MODE] API Key not set.")
-        print("Copy the prompt above and paste it into ChatGPT/Gemini to see the magic!")
-        print("To automate this, uncomment the API call section in generate.py.")
+        print("\n[SIMULATION MODE] ANTHROPIC_API_KEY not set.")
+        print("Set the environment variable to enable generation:")
+        print("  export ANTHROPIC_API_KEY='your-api-key'")
+        print("\nOptionally set a different model:")
+        print("  export ANTHROPIC_MODEL='claude-haiku-3-5-20241022'")
+        return None
 
 if __name__ == "__main__":
     print("--- RAG Generation Demo ---")

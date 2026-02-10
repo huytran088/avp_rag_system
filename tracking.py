@@ -120,7 +120,7 @@ def detect_changed_files(
     data_folder: str,
     metadata: Dict,
     file_extension: str = ".avp"
-) -> Tuple[List[str], List[str]]:
+) -> Tuple[List[str], List[str], List[str]]:
     """
     Detect which files have changed since last ingestion using hash comparison.
 
@@ -130,16 +130,18 @@ def detect_changed_files(
         file_extension: File extension to search for (default: ".avp")
 
     Returns:
-        Tuple of (changed_files, unchanged_files) as lists of full paths
+        Tuple of (changed_files, unchanged_files, deleted_files) as lists of full paths
     """
     changed_files = []
     unchanged_files = []
 
     source_files = metadata.get("source_files", {})
+    current_files = set()
 
     for filename in os.listdir(data_folder):
         if filename.endswith(file_extension):
             full_path = os.path.join(data_folder, filename)
+            current_files.add(full_path)
 
             # Compute current hash
             current_hash = compute_file_hash(full_path)
@@ -160,7 +162,27 @@ def detect_changed_files(
                 # New file - no previous hash
                 changed_files.append(full_path)
 
-    return changed_files, unchanged_files
+    # Detect deleted files: in metadata but no longer on disk
+    deleted_files = [f for f in source_files.keys() if f not in current_files]
+
+    return changed_files, unchanged_files, deleted_files
+
+
+def remove_deleted_from_metadata(metadata: Dict, deleted_files: List[str]) -> Dict:
+    """
+    Remove deleted files from metadata.
+
+    Args:
+        metadata: Metadata dict to update
+        deleted_files: List of file paths that have been deleted
+
+    Returns:
+        Updated metadata dict
+    """
+    for file_path in deleted_files:
+        if file_path in metadata.get("source_files", {}):
+            del metadata["source_files"][file_path]
+    return metadata
 
 
 def update_metadata(
