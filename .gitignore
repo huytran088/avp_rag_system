@@ -45,3 +45,7 @@ static/
 
 # Environment
 .env
+
+# Tests
+tests/__pycache__/
+frontend/test-results/

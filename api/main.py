@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +15,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)
+
+load_dotenv(PROJECT_ROOT / ".env")
 
 from .routes import router
 from .dependencies import limiter
