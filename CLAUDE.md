@@ -29,12 +29,44 @@ uv run python retrieve.py
 uv run python generate.py
 ```
 
+**Start API server (development):**
+```bash
+uv run uvicorn api.main:app --reload
+```
+
+**Start frontend dev server:**
+```bash
+cd frontend && npm run dev
+```
+
+**Run Playwright E2E tests (requires running backend):**
+```bash
+cd frontend && npm run test:e2e
+```
+
+**Docker:**
+```bash
+docker compose up --build
+```
+
 ## Architecture
 
 ### RAG Pipeline
 1. **Ingest** (`ingest.py`): Uses ANTLR4 to parse `.avp` files, extracts function declarations via `CodeStructureVisitor`, outputs JSON knowledge base
 2. **Retrieve** (`retrieve.py`): Two-stage retrieval using BGE embeddings + FAISS for fast vector search, optional BGE reranker for accuracy
 3. **Generate** (`generate.py`): Builds prompts with retrieved code context for LLM code generation
+
+### REST API (`api/`)
+- `api/main.py`: FastAPI app with CORS, rate limiting, lifespan-based retriever init, static file serving
+- `api/routes.py`: `/api/generate`, `/api/retrieve`, `/api/health` endpoints
+- `api/models.py`: Pydantic request/response schemas
+- `api/cache.py`: TTL-based dict cache for retrieval and generation results
+- `api/dependencies.py`: slowapi rate limiter instance
+
+### Frontend (`frontend/`)
+- React 19 + TypeScript + Tailwind CSS v4 + Vite
+- Single `ChatPanel` component for local testing of the API
+- Playwright E2E tests in `frontend/e2e/`
 
 ### ANTLR Components
 - `Pseudocode.g4`: Grammar definition for the AVP language
@@ -47,3 +79,53 @@ uv run python generate.py
 - Keywords: `fun`, `for`, `in`, `if`, `else`, `while`, `return`, `break`, `end`, `and`, `or`, `True`, `False`
 - Arrays: `[1, 2, 3]`, `[1 to 5]` (range), `(100)` (size)
 - Comments: `// comment`
+
+## Gotchas
+
+- **Relative paths in API**: `api/` code must resolve paths via `Path(__file__).parent.parent` — knowledge base and data/ are at project root
+- **Retriever init is slow (~30s)**: Uses BGE embedding + reranker model loading. API uses lifespan eager init to front-load this
+- **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
+- **ANTLR generated files are at project root**, not in a subdirectory — `PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`
+- **`tracking.py`**: Hash-based file change detection for incremental ingestion — imported by `ingest.py`
+- **React 19 event types**: Named exports (`FormEvent`, `KeyboardEvent`) are deprecated — use `React.FormEvent` or structural types
+- **Tailwind CSS v4**: Uses `@import "tailwindcss"` in CSS, no `tailwind.config.js`
+
+## API Details
+
+- `POST /api/generate` (10/min) — calls `generate_code()` from `generate.py`, returns `{generated_code, retrieved_functions, cached}`
+- `POST /api/retrieve` (30/min) — calls `retrieve_code()`, returns scored function matches
+- `GET /api/health` — returns retriever and API key status
+- TTL cache (1hr, 100 entries) for both retrieval and generation results
+- `generate_code()` is the quiet core; `generate_solution()` is the CLI wrapper that prints
+- Returns 503 when `ANTHROPIC_API_KEY` is missing, 429 on rate limit
+
+## Docker
+
+- Multi-stage: Node builds frontend → Python runtime serves everything
+- `static/` directory: built frontend copied here, served by FastAPI catch-all mount
+- Knowledge base pre-generated during build (`RUN uv run python ingest.py`)
+- Health check has 120s start period (model loading)
+- `data/` volume-mounted for live .avp file updates
+
+## Debugging
+Whenever you scan the project and found a bug, which could an error or an exception, don't try to fix it right away. Instead, create a test case suite in a separated folder (e.g. tests/), make sure that the code can pass all tests after fixing the bugs.
+
+### Code Intelligence
+
+Prefer LSP over Grep/Glob/Read for code navigation:
+- `goToDefinition` / `goToImplementation` to jump to source
+- `findReferences` to see all usages across the codebase
+- `workspaceSymbol` to find where something is defined
+- `documentSymbol` to list all symbols in a file
+- `hover` for type info without reading the file
+- `incomingCalls` / `outgoingCalls` for call hierarchy
+
+Before renaming or changing a function signature, use
+`findReferences` to find all call sites first.
+
+Use Grep/Glob only for text/pattern searches (comments,
+strings, config values) where LSP doesn't help.
+
+After writing or editing code, check LSP diagnostics before
+moving on. Fix any type errors or missing imports immediately.
+

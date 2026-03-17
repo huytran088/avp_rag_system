@@ -37,4 +37,14 @@ Thumbs.db
 uv.lock
 
 # Claude Code
-.claude/settings.local.json
+.claude
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Static build output
+static/
+
+# Environment
+.env
