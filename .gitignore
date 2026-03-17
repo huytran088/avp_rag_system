@@ -33,9 +33,6 @@ code_knowledge_base.json
 .DS_Store
 Thumbs.db
 
-# uv
-uv.lock
-
 # Claude Code
 .claude
 
