@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -27,7 +29,7 @@ export default function ChatPanel() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: trimmed }),

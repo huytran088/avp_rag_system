@@ -1,12 +1,5 @@
-import os
 from retrieve import retrieve_code  # Importing our retrieval function
-import anthropic
-
-# --- CONFIGURATION ---
-# Set ANTHROPIC_API_KEY environment variable to enable generation
-# Optionally set ANTHROPIC_MODEL to use a different model
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+from providers import call_llm, is_provider_configured, get_provider_name
 
 
 def generate_code(user_request: str, k: int = 2) -> dict:
@@ -18,20 +11,7 @@ def generate_code(user_request: str, k: int = 2) -> dict:
 
     prompt = _build_prompt(user_request, context_snippets)
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "ANTHROPIC_API_KEY is not set. Set the environment variable to enable generation."
-        )
-
-    model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model=model,
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    generated_code = message.content[0].text
+    generated_code = call_llm(prompt)
 
     return {
         "generated_code": generated_code,
@@ -83,12 +63,15 @@ def generate_solution(user_request):
     print(prompt)
     print("=" * 60)
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("\n[SIMULATION MODE] ANTHROPIC_API_KEY not set.")
-        print("Set the environment variable to enable generation:")
-        print("  export ANTHROPIC_API_KEY='your-api-key'")
-        print("\nOptionally set a different model:")
-        print("  export ANTHROPIC_MODEL='claude-haiku-3-5-20241022'")
+    if not is_provider_configured():
+        provider = get_provider_name()
+        print(f"\n[SIMULATION MODE] {provider} provider is not configured.")
+        if provider == "anthropic":
+            print("Set the environment variable to enable generation:")
+            print("  export ANTHROPIC_API_KEY='your-api-key'")
+        elif provider == "vllm":
+            print("Set the environment variable to enable generation:")
+            print("  export VLLM_BASE_URL='http://localhost:8080/v1'")
         return None
 
     try:
@@ -97,8 +80,7 @@ def generate_solution(user_request):
         print(f"\nError: {e}")
         return None
 
-    model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
-    print(f"\nCalling {model}...")
+    print(f"\nCalling {get_provider_name()} provider...")
 
     print("\n" + "=" * 60)
     print("      GENERATED CODE")

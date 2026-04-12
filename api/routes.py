@@ -1,4 +1,3 @@
-import os
 import asyncio
 from fastapi import APIRouter, Request, HTTPException
 
@@ -8,6 +7,7 @@ from .models import (
 )
 from .cache import retrieval_cache, generation_cache
 from .dependencies import limiter
+from providers import is_provider_configured, get_provider_name
 
 router = APIRouter(prefix="/api")
 
@@ -17,7 +17,7 @@ async def health(request: Request):
     return HealthResponse(
         status="ok",
         retriever_loaded=_retriever is not None,
-        api_key_configured=bool(os.environ.get("ANTHROPIC_API_KEY")),
+        provider_configured=is_provider_configured(),
     )
 
 @router.post("/retrieve", response_model=RetrieveResponse)
@@ -36,8 +36,8 @@ async def retrieve(body: RetrieveRequest, request: Request):
 @router.post("/generate", response_model=GenerateResponse)
 @limiter.limit("10/minute")
 async def generate(body: GenerateRequest, request: Request):
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+    if not is_provider_configured():
+        raise HTTPException(status_code=503, detail=f"{get_provider_name()} provider is not configured")
 
     cached = generation_cache.get(body.message)
     if cached is not None:

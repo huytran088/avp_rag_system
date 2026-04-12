@@ -44,9 +44,24 @@ cd frontend && npm run dev
 cd frontend && npm run test:e2e
 ```
 
-**Docker:**
+**Run unit tests:**
+```bash
+uv run pytest tests/ -v
+```
+
+**Docker (Anthropic-only):**
 ```bash
 docker compose up --build
+```
+
+**Docker with vLLM sidecar (GPU required):**
+```bash
+docker compose --profile vllm up --build
+```
+
+**Deploy frontend to GitHub Pages (manual):**
+```bash
+cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-backend-url npm run deploy:gh-pages
 ```
 
 ## Architecture
@@ -54,19 +69,31 @@ docker compose up --build
 ### RAG Pipeline
 1. **Ingest** (`ingest.py`): Uses ANTLR4 to parse `.avp` files, extracts function declarations via `CodeStructureVisitor`, outputs JSON knowledge base
 2. **Retrieve** (`retrieve.py`): Two-stage retrieval using BGE embeddings + FAISS for fast vector search, optional BGE reranker for accuracy
-3. **Generate** (`generate.py`): Builds prompts with retrieved code context for LLM code generation
+3. **Generate** (`generate.py`): Builds prompts with retrieved code context, calls `providers.call_llm()` for generation
+
+### LLM Providers (`providers.py`)
+- `call_llm(prompt)`: Dispatches to configured provider with optional fallback
+- `_call_anthropic()`: Anthropic Claude via `anthropic` SDK
+- `_call_vllm()`: vLLM or Ollama via `openai` SDK (OpenAI-compatible API)
+- `is_provider_configured()` / `get_provider_name()`: Used by API routes and CLI
+- Controlled by env vars: `LLM_PROVIDER`, `LLM_FALLBACK_PROVIDER`
 
 ### REST API (`api/`)
-- `api/main.py`: FastAPI app with CORS, rate limiting, lifespan-based retriever init, static file serving
-- `api/routes.py`: `/api/generate`, `/api/retrieve`, `/api/health` endpoints
+- `api/main.py`: FastAPI app with CORS (configurable via `CORS_ORIGINS` env var), rate limiting, lifespan-based retriever init, static file serving
+- `api/routes.py`: `/api/generate`, `/api/retrieve`, `/api/health` endpoints — uses `providers.py` for config checks
 - `api/models.py`: Pydantic request/response schemas
 - `api/cache.py`: TTL-based dict cache for retrieval and generation results
 - `api/dependencies.py`: slowapi rate limiter instance
 
 ### Frontend (`frontend/`)
 - React 19 + TypeScript + Tailwind CSS v4 + Vite
-- Single `ChatPanel` component for local testing of the API
+- `ChatPanel` component with configurable API URL (`VITE_API_BASE_URL` env var)
+- Deployable to GitHub Pages (CI/CD in `.github/workflows/deploy-gh-pages.yml`)
 - Playwright E2E tests in `frontend/e2e/`
+
+### CI/CD (`.github/workflows/`)
+- `ci.yml`: Backend pytest + frontend tsc + build on push/PR to `main`
+- `deploy-gh-pages.yml`: Builds frontend with `VITE_BASE_PATH` and `VITE_API_BASE_URL`, deploys to GitHub Pages on push to `main`
 
 ### ANTLR Components
 - `Pseudocode.g4`: Grammar definition for the AVP language
@@ -89,15 +116,19 @@ docker compose up --build
 - **`tracking.py`**: Hash-based file change detection for incremental ingestion — imported by `ingest.py`
 - **React 19 event types**: Named exports (`FormEvent`, `KeyboardEvent`) are deprecated — use `React.FormEvent` or structural types
 - **Tailwind CSS v4**: Uses `@import "tailwindcss"` in CSS, no `tailwind.config.js`
+- **`providers.py` reuses `vllm` provider for Ollama**: Ollama's OpenAI-compatible API at `:11434/v1` works with `_call_vllm()`. Set `VLLM_BASE_URL=http://localhost:11434/v1` and `VLLM_API_KEY=ollama`
+- **`VITE_API_BASE_URL` is build-time only**: Vite inlines it during build. Changing it requires rebuilding the frontend, not just restarting
+- **`CORS_ORIGINS` in `.env`**: Comma-separated extra origins appended to the default localhost origins in `api/main.py`. Restart backend after changing
+- **`VITE_BASE_PATH`**: Set to `/avp_rag_system/` for GitHub Pages deployment (repo subpath). Defaults to `/` for local dev
 
 ## API Details
 
 - `POST /api/generate` (10/min) — calls `generate_code()` from `generate.py`, returns `{generated_code, retrieved_functions, cached}`
 - `POST /api/retrieve` (30/min) — calls `retrieve_code()`, returns scored function matches
-- `GET /api/health` — returns retriever and API key status
+- `GET /api/health` — returns `{status, retriever_loaded, provider_configured}`
 - TTL cache (1hr, 100 entries) for both retrieval and generation results
 - `generate_code()` is the quiet core; `generate_solution()` is the CLI wrapper that prints
-- Returns 503 when `ANTHROPIC_API_KEY` is missing, 429 on rate limit
+- Returns 503 when the active LLM provider is not configured, 429 on rate limit
 
 ## Docker
 
@@ -106,6 +137,10 @@ docker compose up --build
 - Knowledge base pre-generated during build (`RUN uv run python ingest.py`)
 - Health check has 120s start period (model loading)
 - `data/` volume-mounted for live .avp file updates
+- vLLM sidecar via `profiles: [vllm]` — opt-in with `docker compose --profile vllm up`
+- `depends_on: vllm` with `required: false` — avp-rag starts regardless of vLLM
+- `huggingface_cache` named volume persists model weights across restarts
+- See `docs/docker-deploy.md` for full deployment guide (Ollama, tunnels, GitHub Pages)
 
 ## Debugging
 Whenever you scan the project and found a bug, which could an error or an exception, don't try to fix it right away. Instead, create a test case suite in a separated folder (e.g. tests/), make sure that the code can pass all tests after fixing the bugs.

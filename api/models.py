@@ -18,7 +18,7 @@ class GenerateResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str = "ok"
     retriever_loaded: bool = False
-    api_key_configured: bool = False
+    provider_configured: bool = False
 
 class RetrieveRequest(BaseModel):
     query: str
