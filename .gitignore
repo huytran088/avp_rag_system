@@ -34,18 +34,25 @@ code_knowledge_base.json
 Thumbs.db
 
 # Claude Code
-.claude
+.claude/
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.env.local
+frontend/playwright-report/
+frontend/test-results/
 
-# Static build output
+# Static build output (docker compose full-stack build artifact)
 static/
 
 # Environment
 .env
+.env.local
+.env.*.local
 
 # Tests
 tests/__pycache__/
-frontend/test-results/
+
+# Hugging Face cache (local model weights)
+.cache/huggingface/
