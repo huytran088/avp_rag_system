@@ -94,6 +94,7 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 ### CI/CD (`.github/workflows/`)
 - `ci.yml`: Backend pytest + frontend tsc + build on push/PR to `main`
 - `deploy-gh-pages.yml`: Builds frontend with `VITE_BASE_PATH` and `VITE_API_BASE_URL`, deploys to GitHub Pages on push to `main`
+- `sync-hf-spaces.yml`: Copies `hf-space/README.md` → `README.md`, force-pushes repo to HF Spaces on push to `main` — HF Spaces then builds `Dockerfile` and restarts
 
 ### ANTLR Components
 - `Pseudocode.g4`: Grammar definition for the AVP language
@@ -120,6 +121,10 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 - **`VITE_API_BASE_URL` is build-time only**: Vite inlines it during build. Changing it requires rebuilding the frontend, not just restarting
 - **`CORS_ORIGINS` in `.env`**: Comma-separated extra origins appended to the default localhost origins in `api/main.py`. Restart backend after changing
 - **`VITE_BASE_PATH`**: Set to `/avp_rag_system/` for GitHub Pages deployment (repo subpath). Defaults to `/` for local dev
+- **`BrowserRouter basename`**: Must use `basename={import.meta.env.BASE_URL}` — without this, React Router can't match route `"/"` under the `/avp_rag_system/` subpath and the page renders blank
+- **HF Spaces port**: HF Spaces requires port 7860. `Dockerfile` (backend-only) uses 7860; `Dockerfile.full` (docker compose) uses 8000
+- **`hf-space/README.md`**: The HF Spaces YAML front matter lives here. `sync-hf-spaces.yml` copies it to `README.md` on the HF Spaces repo. Do not put HF Spaces metadata in the GitHub `README.md`
+- **`uv sync --frozen`**: `Dockerfile` uses `--frozen` (requires `uv.lock`); `Dockerfile.full` omits it for flexibility during local compose builds
 
 ## API Details
 
@@ -132,7 +137,13 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 
 ## Docker
 
-- Multi-stage: Node builds frontend → Python runtime serves everything
+Two Dockerfiles:
+- `Dockerfile` — backend-only image for Hugging Face Spaces (port 7860, `--frozen` uv install, no Node stage)
+- `Dockerfile.full` — full-stack image for `docker compose` (Node builds frontend → Python runtime, port 8000)
+
+`docker-compose.yml` explicitly points to `Dockerfile.full` via `build.dockerfile`.
+
+Other notes:
 - `static/` directory: built frontend copied here, served by FastAPI catch-all mount
 - Knowledge base pre-generated during build (`RUN uv run python ingest.py`)
 - Health check has 120s start period (model loading)
@@ -140,7 +151,7 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 - vLLM sidecar via `profiles: [vllm]` — opt-in with `docker compose --profile vllm up`
 - `depends_on: vllm` with `required: false` — avp-rag starts regardless of vLLM
 - `huggingface_cache` named volume persists model weights across restarts
-- See `docs/docker-deploy.md` for full deployment guide (Ollama, tunnels, GitHub Pages)
+- See `docs/docker-deploy.md` for full deployment guide (HF Spaces, Ollama, tunnels)
 
 ## Debugging
 Whenever you scan the project and found a bug, which could an error or an exception, don't try to fix it right away. Instead, create a test case suite in a separated folder (e.g. tests/), make sure that the code can pass all tests after fixing the bugs.
