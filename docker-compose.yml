@@ -1,6 +1,8 @@
 services:
   avp-rag:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.full
     ports:
       - "8000:8000"
     env_file:
