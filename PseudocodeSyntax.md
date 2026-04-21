@@ -1,12 +1,12 @@
+[^1]: Last updated: Feb. 20, 2026
 ## Purpose
-[^1]: Last updated: 11/4/2025 
 
 This page[^1] describes the syntax of our custom pseudocode language, AVP. It's designed to be intuitive for students who already have experience in a common language such as Python or JavaScript. Therefore, you may be familiar with many parts of AVP, however there are still significant differences.
  
 If you were looking for details on the AVP metadata syntax or information on the interpreter, they are covered [here](https://gitlab.csi.miamioh.edu/2026-senior-design-projects/algorithm-visualization-project/algorithm-visualization-project/-/wikis/Product-Documentation/Product-Designs/Metadata-Syntax) and [here]() respectively.
 
 ## Formatting
-By convention, variables and functions are written in `snake_case`. Other formats such as `camelCase` are acceptable, but for the purposes of these reference materials, `snake_case` is used. Also by convention, `bagel` and `toast` are used in place of `foo` and `bar`. When more names are required for a demoonstration, more bread types are used as variable names.
+By convention, variables and functions are written in `snake_case`. Other formats such as `camelCase` are acceptable, but for the purposes of these reference materials, `snake_case` is used. Also by convention, `bagel` and `toast` are used in place of `foo` and `bar`. When more names are required for a demonstration, more bread types are used as variable names.
 
 To write a comment inside of your program, use the familiar `//` to denote the start of your comment. This disregards anything else written after it for that line of code.. Remember this if word wrapping is enabled. 
 
@@ -17,7 +17,7 @@ AVP files are saved in ASCII format with the extention `.avp`. The interpreter *
 ## Variables
 Variables are used to store and manage data in your script. In AVP, variables are created dynamically, so you don't have to assign types manually.
 
-At a minimum, variable names must contain at least one English letter (`A-z`). Once this requirement is satisfied, an acceptable name can include arabic numerals (`0-9)` and underscores (`_`). Symbols other than these are ignored **(TODO: 'ignored' is vague)**. 
+At a minimum, variable names must contain at least one English letter (`A-z`). Once this requirement is satisfied, an acceptable name can include arabic numerals (`0-9)` and underscores (`_`). Symbols other than these are not accepted.
 
 ### Assignment
 To assign a variable to a value, use the familiar `=` operator. In the example below, the variable `bagel` is set to a value of `8`
@@ -30,7 +30,7 @@ bagel = 8        // set value of bagel to 8
 bagel = "pizza"  // set value of bagel to "pizza"
 ```
 
-If you are unsure or do not need to assign a variable to anything, variables can be assigned to `Null`. This is particularly useful in [scoping](), but can also be used in other ways. Null variables indicate the absense of any data for that reference.
+If you are unsure or do not need to assign a variable to anything, variables can be assigned to `Null`. This is particularly useful in [scoping](), but can also be used in other ways. Null variables indicate the absence of any data for that reference.
 
 ### Types
 In AVP, variables are one of three types at any given time: `Number`, `Boolean`, or `String`.
@@ -59,56 +59,53 @@ toast = "abc123"
 ### Arrays
 There is another special kind of a variable called an array. This allows you to have one name that stores multiple values that can be retrieved later. Think of them how you might a List in Python:
 ```
-bagel = [2, 5, 3, 9, 10]  // assign 'bagel' to an array of numbers
+bagel = arr[2, 5, 3, 9, 10]  // assign 'bagel' to an array of numbers
 ```
 
 Like variables, arrays are flexible with their types. What this means is that not every entry in an array is required to be of the same type:
 ```
-toast = [42, 2.71, True, "brot"]
-bagel = [64, True]
+toast = arr[42, 2.71, True, "brot"]
+bagel = arr[64, True]
 ```
 
 For every entry entered into an array, a **copy** of what it represents is created at the specified location. So if you were to insert a variable `bagel` into an array `toast`:
 ```
 toast = 10
-bagel = [9, toast, 11]  // set bagel to [9, 10, 11]
+bagel = arr[9, toast, 11]  // set bagel to [9, 10, 11]
 toast = True            // bagel[1] would still be equal to 10, whereas toast is now of boolean value True
 ```
 <br>
 
 Creating large arrays of sequential numbers can be quite tedious. This can be simplified by referencing the sequential set of whole Numbers between two Numbers. In AVP this is performed using `to`:
 ```
-toast = [1, 2, 3, 4, 5]
-bagel = [1 to 5]            // bagel = [1, 2, 3, 4, 5]
+toast = arr[1, 2, 3, 4, 5]
+bagel = arr[1 to 5]            // bagel = [1, 2, 3, 4, 5]
 ```
-You can also use a variable to do this, provided it's a non-floating point Number:
+
+You can also use a variable to do this:
 ```
 bagel = 6
-toast = [3 to bagel]    // toast = [3, 4, 5, 6]
+toast = arr[3 to bagel]    // toast = [3, 4, 5, 6]
 ```
+
+An important detail to note though: Floating point numbers not allowed this syntax, algorithms containing them will give an error:
+```
+biscuit = arr[2.27 to 4]       // Invalid!
+```
+
 <br>
 
 **TODO: Creating a array by specifing the size of it. How it's filled isn't specified well!**
-<!-- MUST CLARIFY with DESIGN TEAM
-ISSUE is lack of detail for this section on design doc! The existing section:
-- specifies how to create empty arrays of specified size
-- does not say how to fill an array of a size with the same value at each index
-- gives bad syntax:
-    - `a1 = arr(100)`
-        - this implies that there is a FUNCTION that creates this array. CONCERN: may confuse user?
-        - why use arr to preface it?
-    - `a2 = arr[1 to 5]`
-        - if this is a function creating an array, why use brackets to specify args?? Parentheses have been decided on for specifying arguments in functions previously, why is this different?
+If a specific array size is needed, but you don't want anything inside it yet, you can initialize an empty array.
+```
+bagel = arr(5)    // bagel = [Null, Null, Null, Null, Null]
+```
 
-How this can be resolved:
-- use `bagel = [1 to 5]` for dynamically assigning indices
-- remove arr() syntax
-- To create an array filled with a single value, use braces. The first argument specifies how many spaces to make, the second specifies what to fill them with:
-    ```
-    bagel = {5, 1}      // bagel = [1, 1, 1, 1, 1]
-    toast = {5}         // toast = [Null, Null, Null, Null, Null]
-    ``` 
--->
+You can also specify what value to fill it with:
+```
+toast = arr(4, "jam")    // toast = ["jam", "jam", "jam", "jam"]
+bagel = arr(2, False)    // bagel = [False, False]
+```
 
 ## Operations
 Operations are the fundamental steps taken to compare variables or modify their data. 
@@ -228,9 +225,8 @@ else if (bagel == toast):
     ...
 else:
     ...
-end if
+end if      // only a single 'end if' is needed
 ```
-Notice how only one `end if` is necessary in this case.
 
 ### while
 These loops will repeat until their condition is no longer true.
@@ -243,7 +239,7 @@ end while
 ### for
 In many cases when a for-loop is necessary (such as iterating through an array), you would want to use the "for-each" style:
 ```
-toast = [1, 2, 3, 4, 5]
+toast = arr[1, 2, 3, 4, 5]
 for bagel in toast: 
     ...
 end for
@@ -252,7 +248,7 @@ In this example, we are initializing `bagel` to represent the index at the start
 
 There is also a "regular" for-loop for extended algorithms:
 ```
-for bagel = 1, bagel < 10, bagel += 1:
+for (bagel = 1, bagel < 10, bagel += 1):
     ...
 end for
 ```
@@ -273,7 +269,7 @@ That is, unless a `return <some value>` is explicitly used, a function will *imp
 To illustrate, consider the example below:
 ```
 fun some_fn(bagel):
-    if bagel < 3:
+    if (bagel < 3):
         return True
     end if
 

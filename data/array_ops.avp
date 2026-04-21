@@ -11,6 +11,6 @@ end fun
 
 fun create_array():
     // specific syntax for range arrays
-    number_arr = [1 to 10]
+    number_arr = arr[1 to 10]
     return number_arr
 end fun

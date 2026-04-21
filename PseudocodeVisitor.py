@@ -44,6 +44,11 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PseudocodeParser#functionCallStatement.
+    def visitFunctionCallStatement(self, ctx:PseudocodeParser.FunctionCallStatementContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PseudocodeParser#paramList.
     def visitParamList(self, ctx:PseudocodeParser.ParamListContext):
         return self.visitChildren(ctx)
@@ -51,6 +56,16 @@ class PseudocodeVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PseudocodeParser#forEachLoop.
     def visitForEachLoop(self, ctx:PseudocodeParser.ForEachLoopContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#regularForLoop.
+    def visitRegularForLoop(self, ctx:PseudocodeParser.RegularForLoopContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#forUpdate.
+    def visitForUpdate(self, ctx:PseudocodeParser.ForUpdateContext):
         return self.visitChildren(ctx)
 
 

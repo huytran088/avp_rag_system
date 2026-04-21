@@ -309,7 +309,7 @@ code = generate_avp("write a function to compute the GCD of two numbers")
 print(code)
 ```
 
-**Minimal JavaScript integration:**
+**TypeScript integration:**
 
 ```ts
 const BASE_URL = "https://beefstewbibi-avp-rag-system.hf.space";
