@@ -8,8 +8,16 @@ ingestion of .avp source files.
 import hashlib
 import json
 import os
-from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Tuple
+
+
+def _empty_metadata() -> Dict:
+    return {
+        "last_ingestion": None,
+        "tracking_method": "hash",
+        "source_files": {},
+    }
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -30,6 +38,14 @@ def compute_file_hash(file_path: str) -> str:
     return sha256.hexdigest()
 
 
+def _read_kb(kb_path: str):
+    """Return parsed JSON contents of the knowledge base, or None if missing."""
+    if not os.path.exists(kb_path):
+        return None
+    with open(kb_path, 'r') as f:
+        return json.load(f)
+
+
 def load_metadata(kb_path: str) -> Dict:
     """
     Load metadata from knowledge base file.
@@ -41,34 +57,11 @@ def load_metadata(kb_path: str) -> Dict:
         Metadata dict with 'source_files' and 'last_ingestion' keys.
         Returns empty metadata structure if file doesn't exist or is old format.
     """
-    if not os.path.exists(kb_path):
-        return {
-            "last_ingestion": None,
-            "tracking_method": "hash",
-            "source_files": {}
-        }
-
-    with open(kb_path, 'r') as f:
-        data = json.load(f)
-
-    # Check format
-    if isinstance(data, list):
-        # Old format - no metadata available
-        return {
-            "last_ingestion": None,
-            "tracking_method": "hash",
-            "source_files": {}
-        }
-    elif isinstance(data, dict) and "metadata" in data:
-        # New format with metadata
+    data = _read_kb(kb_path)
+    if isinstance(data, dict) and "metadata" in data:
         return data["metadata"]
-    else:
-        # Unknown format
-        return {
-            "last_ingestion": None,
-            "tracking_method": "hash",
-            "source_files": {}
-        }
+    # Missing file, legacy list format, or unknown format
+    return _empty_metadata()
 
 
 def load_existing_chunks(kb_path: str) -> List[Dict]:
@@ -81,21 +74,14 @@ def load_existing_chunks(kb_path: str) -> List[Dict]:
     Returns:
         List of chunk dicts
     """
-    if not os.path.exists(kb_path):
-        return []
-
-    with open(kb_path, 'r') as f:
-        data = json.load(f)
-
-    # Check format
+    data = _read_kb(kb_path)
     if isinstance(data, list):
         # Old format - direct array
         return data
-    elif isinstance(data, dict) and "chunks" in data:
+    if isinstance(data, dict) and "chunks" in data:
         # New format with metadata wrapper
         return data["chunks"]
-    else:
-        return []
+    return []
 
 
 def save_with_metadata(chunks: List[Dict], metadata: Dict, kb_path: str):
@@ -107,19 +93,14 @@ def save_with_metadata(chunks: List[Dict], metadata: Dict, kb_path: str):
         metadata: Metadata dict with tracking information
         kb_path: Path to knowledge base JSON file
     """
-    output = {
-        "metadata": metadata,
-        "chunks": chunks
-    }
-
     with open(kb_path, 'w') as f:
-        json.dump(output, f, indent=4)
+        json.dump({"metadata": metadata, "chunks": chunks}, f, indent=4)
 
 
 def detect_changed_files(
     data_folder: str,
     metadata: Dict,
-    file_extension: str = ".avp"
+    file_extension: str = ".avp",
 ) -> Tuple[List[str], List[str], List[str]]:
     """
     Detect which files have changed since last ingestion using hash comparison.
@@ -132,38 +113,28 @@ def detect_changed_files(
     Returns:
         Tuple of (changed_files, unchanged_files, deleted_files) as lists of full paths
     """
-    changed_files = []
-    unchanged_files = []
-
     source_files = metadata.get("source_files", {})
+    changed_files: List[str] = []
+    unchanged_files: List[str] = []
     current_files = set()
 
     for filename in os.listdir(data_folder):
-        if filename.endswith(file_extension):
-            full_path = os.path.join(data_folder, filename)
-            current_files.add(full_path)
+        if not filename.endswith(file_extension):
+            continue
+        full_path = os.path.join(data_folder, filename)
+        current_files.add(full_path)
 
-            # Compute current hash
-            current_hash = compute_file_hash(full_path)
-            current_mtime = os.path.getmtime(full_path)
-            current_size = os.path.getsize(full_path)
+        current_hash = compute_file_hash(full_path)
+        previous_hash = source_files.get(full_path, {}).get("hash")
 
-            # Check if file has previous metadata
-            if full_path in source_files:
-                previous_hash = source_files[full_path].get("hash")
-
-                if current_hash == previous_hash:
-                    # Hash matches - file unchanged
-                    unchanged_files.append(full_path)
-                else:
-                    # Hash differs - file changed
-                    changed_files.append(full_path)
-            else:
-                # New file - no previous hash
-                changed_files.append(full_path)
+        if current_hash == previous_hash:
+            unchanged_files.append(full_path)
+        else:
+            # New file (no previous hash) or modified file
+            changed_files.append(full_path)
 
     # Detect deleted files: in metadata but no longer on disk
-    deleted_files = [f for f in source_files.keys() if f not in current_files]
+    deleted_files = [f for f in source_files if f not in current_files]
 
     return changed_files, unchanged_files, deleted_files
 
@@ -179,16 +150,16 @@ def remove_deleted_from_metadata(metadata: Dict, deleted_files: List[str]) -> Di
     Returns:
         Updated metadata dict
     """
+    source_files = metadata.get("source_files", {})
     for file_path in deleted_files:
-        if file_path in metadata.get("source_files", {}):
-            del metadata["source_files"][file_path]
+        source_files.pop(file_path, None)
     return metadata
 
 
 def update_metadata(
     metadata: Dict,
     file_path: str,
-    function_names: List[str]
+    function_names: List[str],
 ) -> Dict:
     """
     Update metadata for a specific file after ingestion.
@@ -201,17 +172,11 @@ def update_metadata(
     Returns:
         Updated metadata dict
     """
-    file_hash = compute_file_hash(file_path)
-    file_mtime = os.path.getmtime(file_path)
-    file_size = os.path.getsize(file_path)
-
     metadata["source_files"][file_path] = {
-        "hash": file_hash,
-        "mtime": file_mtime,
-        "size": file_size,
-        "functions": function_names
+        "hash": compute_file_hash(file_path),
+        "mtime": os.path.getmtime(file_path),
+        "size": os.path.getsize(file_path),
+        "functions": function_names,
     }
-
-    metadata["last_ingestion"] = datetime.utcnow().isoformat() + "Z"
-
+    metadata["last_ingestion"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     return metadata
