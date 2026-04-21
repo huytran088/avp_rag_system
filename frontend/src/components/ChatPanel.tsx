@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -18,8 +18,7 @@ export default function ChatPanel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function handleSubmit(e?: { preventDefault(): void }) {
-    e?.preventDefault();
+  async function submitMessage() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
@@ -58,10 +57,15 @@ export default function ChatPanel() {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submitMessage();
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      submitMessage();
     }
   }
 
@@ -70,28 +74,24 @@ export default function ChatPanel() {
       <h1 className="text-xl font-bold mb-4 text-center">AVP RAG Chat</h1>
 
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-700 text-slate-100"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <pre className="whitespace-pre-wrap font-mono text-sm">
-                  {msg.content}
-                </pre>
-              ) : (
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              )}
+        {messages.map((msg, i) => {
+          const isUser = msg.role === "user";
+          return (
+            <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  isUser ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-100"
+                }`}
+              >
+                {isUser ? (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                ) : (
+                  <pre className="whitespace-pre-wrap font-mono text-sm">{msg.content}</pre>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {loading && (
           <div className="flex justify-start">

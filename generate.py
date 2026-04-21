@@ -1,38 +1,19 @@
-from retrieve import retrieve_code  # Importing our retrieval function
-from providers import call_llm, is_provider_configured, get_provider_name
-
-
-def generate_code(user_request: str, k: int = 2) -> dict:
-    """Core generation logic. Returns dict with generated_code, retrieved_functions, prompt."""
-    context_snippets = retrieve_code(user_request, k=k)
-
-    if not context_snippets:
-        return {"generated_code": None, "retrieved_functions": [], "prompt": None}
-
-    prompt = _build_prompt(user_request, context_snippets)
-
-    generated_code = call_llm(prompt)
-
-    return {
-        "generated_code": generated_code,
-        "retrieved_functions": context_snippets,
-        "prompt": prompt,
-    }
+from providers import call_llm, get_provider_name, is_provider_configured
+from retrieve import retrieve_code
 
 
 def _build_prompt(user_request: str, context_snippets: list) -> str:
     """Build the LLM prompt from retrieved snippets."""
-    prompt = """
+    reference_block = "".join(
+        f"\n// From file: {s['function_name']}\n{s['code']}\n"
+        for s in context_snippets
+    )
+    return f"""
 You are an expert developer in the 'AVP' Pseudocode language.
 Here is the strict syntax definition based on existing codebase examples:
 
 --- REFERENCE CODE START ---
-"""
-    for snippet in context_snippets:
-        prompt += f"\n// From file: {snippet['function_name']}\n"
-        prompt += snippet['code'] + "\n"
-
-    prompt += f"""
+{reference_block}
 --- REFERENCE CODE END ---
 
 Using the syntax and style from the reference code above, write a new AVP function to solve this task:
@@ -44,7 +25,34 @@ Rules:
 3. Only use standard keywords (if, while, for, etc.) seen in the reference.
 4. Do not explain, just output the code.
 """
-    return prompt
+
+
+def generate_code(user_request: str, k: int = 2) -> dict:
+    """Core generation logic. Returns dict with generated_code, retrieved_functions, prompt."""
+    context_snippets = retrieve_code(user_request, k=k)
+
+    if not context_snippets:
+        return {"generated_code": None, "retrieved_functions": [], "prompt": None}
+
+    prompt = _build_prompt(user_request, context_snippets)
+    generated_code = call_llm(prompt)
+
+    return {
+        "generated_code": generated_code,
+        "retrieved_functions": context_snippets,
+        "prompt": prompt,
+    }
+
+
+def _print_simulation_help(provider: str) -> None:
+    print(f"\n[SIMULATION MODE] {provider} provider is not configured.")
+    hints = {
+        "anthropic": "  export ANTHROPIC_API_KEY='your-api-key'",
+        "vllm": "  export VLLM_BASE_URL='http://localhost:8080/v1'",
+    }
+    if provider in hints:
+        print("Set the environment variable to enable generation:")
+        print(hints[provider])
 
 
 def generate_solution(user_request):
@@ -64,14 +72,7 @@ def generate_solution(user_request):
     print("=" * 60)
 
     if not is_provider_configured():
-        provider = get_provider_name()
-        print(f"\n[SIMULATION MODE] {provider} provider is not configured.")
-        if provider == "anthropic":
-            print("Set the environment variable to enable generation:")
-            print("  export ANTHROPIC_API_KEY='your-api-key'")
-        elif provider == "vllm":
-            print("Set the environment variable to enable generation:")
-            print("  export VLLM_BASE_URL='http://localhost:8080/v1'")
+        _print_simulation_help(get_provider_name())
         return None
 
     try:
@@ -89,12 +90,12 @@ def generate_solution(user_request):
     print("=" * 60)
     return result["generated_code"]
 
+
 if __name__ == "__main__":
     print("--- RAG Generation Demo ---")
-    
+
     while True:
         req = input("\nWhat code do you want to generate? (or 'exit'): ")
         if req.lower() == 'exit':
             break
-            
         generate_solution(req)
