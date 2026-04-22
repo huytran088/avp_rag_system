@@ -13,5 +13,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 10_000,
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    { name: "ci", use: { browserName: "chromium" }, testMatch: "**/*-mocked.spec.ts" },
+  ],
 });

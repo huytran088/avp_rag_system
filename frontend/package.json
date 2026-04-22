@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --project=ci",
     "test:e2e:ui": "playwright test --ui",
     "deploy:gh-pages": "VITE_BASE_PATH=/avp_rag_system/ vite build && npx gh-pages -d dist"
   },
