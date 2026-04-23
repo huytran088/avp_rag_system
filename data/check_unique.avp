@@ -1,0 +1,20 @@
+// check unique
+
+a1 = arr[1, 2, 3, 4, 5, 3]
+
+// Determines if all elements of an array are unique
+fun check_unique(@init<table> array):
+    n = length(array)
+
+    for @mark<i, outline, yellow> (i = 0; i < n; i += 1):
+        for @mark<j, outline, yellow> (j = i + 1; j < n; j += 1):
+            if (array[i] == array[j]):
+                @mark<i, highlight, green> return 0  // Duplicate found
+            end if
+        end for
+    end for
+
+    return 1  // No duplicates found
+end fun
+
+result = check_unique(a1)

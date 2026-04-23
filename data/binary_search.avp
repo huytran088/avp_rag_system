@@ -1,0 +1,33 @@
+// Binary Search
+
+a1 = arr[1, 3, 5, 7, 9, 11, 19]
+key = 11
+
+fun Binary_Search(@init<table> collection, target, size): 
+    low = 0
+    high = size - 1
+
+    while (low <= high):
+        // Calculate middle index
+        mid = (low + high) / 2
+        
+        // Get value at the middle
+        @mark<mid, highlight, yellow> val = collection[mid]
+        
+        if (val == target):
+            @mark<mid, highlight, green> return mid
+        end if
+        
+        if (val < target):
+            @mark<low, outline, yellow> low = mid + 1
+        end if
+        
+        if (val > target):
+            @mark<high, outline, yellow> high = mid - 1
+        end if
+    end while
+
+    @log<warn, "Not found"> return -1
+end fun
+
+result = Binary_Search(a1, key, length(a1))

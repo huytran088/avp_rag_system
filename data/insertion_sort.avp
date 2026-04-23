@@ -1,0 +1,27 @@
+// insertion sort
+
+a1 = arr[1, 10, 5, 6, 4, 7, 19]
+
+// Sorts an array of values in ascending order
+fun Insertion_Sort(@init<table> array): 
+    n = length(array)
+
+    // Starting from 2nd element (index 1) as the first is assumed sorted
+    for (i = 0, i < n, i += 1):
+        @mark<i, outline, yellow> key = array[i]
+        j = i - 1
+
+        // Compare key with each element on the left of it until smaller element
+        // is found. Shift greater elements to the right to keep sorted order.
+        while ( j >= 0 and key < array[j]):
+            @mark<j, text, fg> array[j + 1] = array[j]
+            j -= 1
+        end while
+
+        // Place key at the right position in sorted sub-array
+        array[j + 1] = key
+    end for
+    return array
+end fun
+
+result = Insertion_Sort(a1)
