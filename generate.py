@@ -23,7 +23,8 @@ Rules:
 1. Use strict 4-space indentation.
 2. Use 'fun name(args): ... end fun' syntax.
 3. Only use standard keywords (if, while, for, etc.) seen in the reference.
-4. Do not explain, just output the code.
+4. Always include a function call after the function definition (e.g. result = function_name(args)).
+5. Do not explain, just output the code.
 """
 
 

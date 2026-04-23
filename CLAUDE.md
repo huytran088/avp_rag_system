@@ -99,6 +99,7 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 ### ANTLR Components
 - `Pseudocode.g4`: Grammar definition for the AVP language
 - `PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`: Generated parser files (regenerate after grammar changes)
+- Runtime: `antlr4-python3-runtime==4.13.2`, tooling: `antlr4-tools==0.2.2` (latest as of 2026-04-23)
 
 ### AVP Language Notes
 - Python-like syntax with `fun`/`end fun`, `if`/`end if`, `for`/`end for`, `while`/`end while`
