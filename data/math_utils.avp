@@ -1,18 +1,25 @@
 // Basic math operations in AVP
+
 fun add_numbers(a, b):
     return a + b
 end fun
 
+result = add_numbers(5, 3)
+
 fun max_value(x, y):
     // Compare two values and return the larger one
-    if (x > y):
-        return x
+    @mark<x, outline, yellow> if (x > y):
+        @mark<x, highlight, green> return x
     end if
-    
-    return y
+
+    @mark<y, highlight, green> return y
 end fun
+
+result = max_value(10, 7)
 
 fun power_of(base, exponent):
     // Demonstrating the power operator
     return base ** exponent
 end fun
+
+result = power_of(2, 8)

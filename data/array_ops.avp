@@ -1,16 +1,24 @@
-fun sum_array(numbers):
+// Array utility operations in AVP
+
+a1 = arr[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+fun sum_array(@init<table> numbers):
     total = 0
-    
+
     // Iterate through the numbers array
     for n in numbers:
-        total = total + n
+        @mark<total, text, fg> total = total + n
     end for
-    
+
     return total
 end fun
 
+result = sum_array(a1)
+
 fun create_array():
-    // specific syntax for range arrays
+    // Specific syntax for range arrays
     number_arr = arr[1 to 10]
     return number_arr
 end fun
+
+result = create_array()

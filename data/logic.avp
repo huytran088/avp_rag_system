@@ -1,23 +1,29 @@
+// Logic and control flow examples in AVP
+
 fun countdown_timer(start_val):
     current = start_val
-    
+
     while (current > 0):
-        current = current - 1
-        
-        // Example of exiting a scope
+        @mark<current, text, fg> current = current - 1
+
+        // Exit early when counter reaches 5
         if (current == 5):
-            break
+            @log<info, "Early exit at 5"> break
         end if
     end while
-    
+
     return current
 end fun
+
+result = countdown_timer(10)
 
 fun check_status(is_active, has_error):
     // Demonstrating 'and' / 'or' operators
     if (is_active and has_error):
-        return False
+        @log<warn, "Active with error"> return False
     else:
         return True
     end if
 end fun
+
+result = check_status(True, False)
