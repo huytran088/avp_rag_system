@@ -26,6 +26,24 @@ class PseudocodeListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by PseudocodeParser#ArrayLvalue.
+    def enterArrayLvalue(self, ctx:PseudocodeParser.ArrayLvalueContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#ArrayLvalue.
+    def exitArrayLvalue(self, ctx:PseudocodeParser.ArrayLvalueContext):
+        pass
+
+
+    # Enter a parse tree produced by PseudocodeParser#SimpleLvalue.
+    def enterSimpleLvalue(self, ctx:PseudocodeParser.SimpleLvalueContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#SimpleLvalue.
+    def exitSimpleLvalue(self, ctx:PseudocodeParser.SimpleLvalueContext):
+        pass
+
+
     # Enter a parse tree produced by PseudocodeParser#assignment.
     def enterAssignment(self, ctx:PseudocodeParser.AssignmentContext):
         pass
@@ -62,6 +80,15 @@ class PseudocodeListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by PseudocodeParser#compoundAssignment.
+    def enterCompoundAssignment(self, ctx:PseudocodeParser.CompoundAssignmentContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#compoundAssignment.
+    def exitCompoundAssignment(self, ctx:PseudocodeParser.CompoundAssignmentContext):
+        pass
+
+
     # Enter a parse tree produced by PseudocodeParser#functionDecl.
     def enterFunctionDecl(self, ctx:PseudocodeParser.FunctionDeclContext):
         pass
@@ -86,6 +113,42 @@ class PseudocodeListener(ParseTreeListener):
 
     # Exit a parse tree produced by PseudocodeParser#paramList.
     def exitParamList(self, ctx:PseudocodeParser.ParamListContext):
+        pass
+
+
+    # Enter a parse tree produced by PseudocodeParser#annotatedParam.
+    def enterAnnotatedParam(self, ctx:PseudocodeParser.AnnotatedParamContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#annotatedParam.
+    def exitAnnotatedParam(self, ctx:PseudocodeParser.AnnotatedParamContext):
+        pass
+
+
+    # Enter a parse tree produced by PseudocodeParser#annotation.
+    def enterAnnotation(self, ctx:PseudocodeParser.AnnotationContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#annotation.
+    def exitAnnotation(self, ctx:PseudocodeParser.AnnotationContext):
+        pass
+
+
+    # Enter a parse tree produced by PseudocodeParser#annotationArgList.
+    def enterAnnotationArgList(self, ctx:PseudocodeParser.AnnotationArgListContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#annotationArgList.
+    def exitAnnotationArgList(self, ctx:PseudocodeParser.AnnotationArgListContext):
+        pass
+
+
+    # Enter a parse tree produced by PseudocodeParser#annotationArg.
+    def enterAnnotationArg(self, ctx:PseudocodeParser.AnnotationArgContext):
+        pass
+
+    # Exit a parse tree produced by PseudocodeParser#annotationArg.
+    def exitAnnotationArg(self, ctx:PseudocodeParser.AnnotationArgContext):
         pass
 
 

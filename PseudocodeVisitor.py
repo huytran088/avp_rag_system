@@ -19,6 +19,16 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PseudocodeParser#ArrayLvalue.
+    def visitArrayLvalue(self, ctx:PseudocodeParser.ArrayLvalueContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#SimpleLvalue.
+    def visitSimpleLvalue(self, ctx:PseudocodeParser.SimpleLvalueContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PseudocodeParser#assignment.
     def visitAssignment(self, ctx:PseudocodeParser.AssignmentContext):
         return self.visitChildren(ctx)
@@ -39,6 +49,11 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PseudocodeParser#compoundAssignment.
+    def visitCompoundAssignment(self, ctx:PseudocodeParser.CompoundAssignmentContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PseudocodeParser#functionDecl.
     def visitFunctionDecl(self, ctx:PseudocodeParser.FunctionDeclContext):
         return self.visitChildren(ctx)
@@ -51,6 +66,26 @@ class PseudocodeVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PseudocodeParser#paramList.
     def visitParamList(self, ctx:PseudocodeParser.ParamListContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#annotatedParam.
+    def visitAnnotatedParam(self, ctx:PseudocodeParser.AnnotatedParamContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#annotation.
+    def visitAnnotation(self, ctx:PseudocodeParser.AnnotationContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#annotationArgList.
+    def visitAnnotationArgList(self, ctx:PseudocodeParser.AnnotationArgListContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#annotationArg.
+    def visitAnnotationArg(self, ctx:PseudocodeParser.AnnotationArgContext):
         return self.visitChildren(ctx)
 
 

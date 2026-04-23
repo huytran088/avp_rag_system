@@ -287,7 +287,7 @@ for fn in results:
 
 Point any HTTP client at the production base URL. No authentication is required.
 
-**Minimal Python integration:**
+**Python integration:**
 
 ```python
 import httpx
