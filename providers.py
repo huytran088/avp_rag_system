@@ -1,12 +1,23 @@
 """LLM provider abstraction with optional fallback."""
 
 import os
+import re
 import sys
 from typing import Callable
 
 import anthropic
 import openai
 
+
+# Matches a leading Qwen-style reasoning block, so we can drop when thinkin is disabled
+# but the served model still emits it. This is a bit hacky but allows us to use the same model for both providers.
+_THINK_RE = re.compile(r"^\s*<think>\s*.*?</think>\s*", re.DOTALL)
+
+def strip_thinking(text: str) -> str:
+    """Strips leading Qwen-style reasoning blocks from the text."""
+    if not text:
+        return text
+    return _THINK_RE.sub("", text, count=1)
 
 def _call_anthropic(prompt: str) -> str:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -26,15 +37,32 @@ def _call_anthropic(prompt: str) -> str:
 
 def _call_vllm(prompt: str) -> str:
     base_url = os.environ.get("VLLM_BASE_URL", "http://vllm:8080/v1")
-    model = os.environ.get("VLLM_MODEL", "Qwen/Qwen3-8B")
+    model = os.environ.get("VLLM_MODEL", "qwen3.6-27b-awq")
     api_key = os.environ.get("VLLM_API_KEY", "token-placeholder")
+    
+    # Qwen3.6 runs in thinking mode by default, so we strip out the leading reasoning block if present to avoid confusion
+    # unless VLLM_THINKING_MODE is explicitly set to "enabled".
+    enable_thinking = os.environ.get("VLLM_ENABLE_THINKING", "false").lower() == "true"
+    
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
     response = client.chat.completions.create(
         model=model,
-        max_tokens=1024,
+        max_tokens=int(os.environ.get("VLLM_MAX_TOKENS", "1024")),
+        temperature=float(os.environ.get("VLLM_TEMPERATURE", "0.6")),
+        top_p=float(os.environ.get("VLLM_TOP_P", "0.95")),
         messages=[{"role": "user", "content": prompt}],
+        # top_k and the thinking switch are currently only supported in the vllm provider, so we set them here to avoid issues with the anthropic provider which doesn't support them.
+        extra_body={
+            "top_k": int(os.environ.get("VLLM_TOP_K", "20")),
+            "chat_template_kwargs": {
+                "enable_thinking": enable_thinking,
+            },
+        }
     )
-    return response.choices[0].message.content
+    result = response.choices[0].message.content or ""
+    if not enable_thinking:
+        result = strip_thinking(result)
+    return result
 
 
 # .__name__ references make Pyright see these as accessed; getattr re-resolves at
