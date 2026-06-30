@@ -1,4 +1,4 @@
-from typing import Optional
+# from typing import None
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +15,7 @@ class RetrievedFunction(BaseModel):
 
 
 class GenerateResponse(BaseModel):
-    generated_code: Optional[str] = None
+    generated_code: str | None = None
     retrieved_functions: list[RetrievedFunction] = []
     cached: bool = False
 
