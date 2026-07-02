@@ -15,7 +15,7 @@ A Retrieval-Augmented Generation (RAG) system for the AVP pseudocode language. U
 - **Multi-Provider LLM** — Pluggable providers (Anthropic Claude, vLLM/OpenAI-compatible) with optional fallback
 - **REST API** — FastAPI backend with rate limiting, TTL caching, and CORS support
 - **React Chat UI** — Chat interface deployed to GitHub Pages
-- **Fully Managed Deployment** — Backend on Hugging Face Spaces, frontend on GitHub Pages, both auto-deployed via GitHub Actions
+- **Fully Managed Deployment** — Backend on GPU server, frontend on GitHub Pages
 - **Unit & E2E Tests** — pytest unit tests and Playwright end-to-end tests
 
 ## Architecture
@@ -23,10 +23,10 @@ A Retrieval-Augmented Generation (RAG) system for the AVP pseudocode language. U
 ### Deployed Architecture
 
 ```
-GitHub Pages                              Hugging Face Spaces
-huytran088.github.io/avp_rag_system       beefstewbibi-avp-rag-system.hf.space
+AVP Server                              GPU server 
+avp.capstone.csi.miamioh.edu            cec-cap-gpu1.miamioh.edu(172.17.0.74:8000) 
   React SPA (BrowserRouter)      ──────►   FastAPI + BGE retrieval
-  VITE_API_BASE_URL baked in               Anthropic Claude backend
+  VITE_API_BASE_URL baked in               vLLM backend + Qwen3.6-27B model
   auto-deployed: deploy-gh-pages.yml       auto-deployed: sync-hf-spaces.yml
 ```
 
@@ -56,7 +56,7 @@ huytran088.github.io/avp_rag_system       beefstewbibi-avp-rag-system.hf.space
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
-- ANTLR4 (only needed for grammar regeneration)
+- ANTLR-NG (only needed for grammar regeneration)
 - Node.js 18+ (only needed for frontend development)
 
 ## Installation
@@ -77,12 +77,12 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `anthropic` | Active provider: `anthropic` or `vllm` |
+| `LLM_PROVIDER` | `vllm` | Active provider: `anthropic` or `vllm` |
 | `LLM_FALLBACK_PROVIDER` | *(empty)* | Optional fallback provider on error |
 | `ANTHROPIC_API_KEY` | — | Required when using the Anthropic provider |
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-20250514` | Anthropic model to use |
-| `VLLM_BASE_URL` | `http://vllm:8080/v1` | vLLM or Ollama OpenAI-compatible endpoint |
-| `VLLM_MODEL` | `Qwen/Qwen3-8B` | Model served by vLLM/Ollama |
+| `VLLM_BASE_URL` | `http://vllm:8001/v1` | vLLM or Ollama OpenAI-compatible endpoint |
+| `VLLM_MODEL` | `Qwen/Qwen3.6-27B` | Model served by vLLM/Ollama |
 | `VLLM_API_KEY` | `token-placeholder` | API key for vLLM (Ollama ignores this) |
 | `CORS_ORIGINS` | *(empty)* | Extra comma-separated origins beyond localhost |
 
@@ -135,7 +135,7 @@ Opens at `http://localhost:5173` with API proxy to the backend.
 
 ## API Reference
 
-Base URL (production): `https://beefstewbibi-avp-rag-system.hf.space`
+Base URL (production): `https://avp.capstone.csi.miamioh.edu`
 Base URL (local dev): `http://localhost:8000`
 
 ---
@@ -145,7 +145,7 @@ Base URL (local dev): `http://localhost:8000`
 Check backend status.
 
 ```bash
-curl https://beefstewbibi-avp-rag-system.hf.space/api/health
+curl https://avp.capstone.csi.miamioh.edu/api/health
 ```
 
 ```json
@@ -166,7 +166,7 @@ Generate AVP pseudocode from a natural language description.
 
 **Request:**
 ```json
-{ "message": "write a function to find the maximum value in an array" }
+{ "query": "write a function to find the maximum value in an array" }
 ```
 
 **Response:**
@@ -187,7 +187,7 @@ Generate AVP pseudocode from a natural language description.
 
 **curl:**
 ```bash
-curl -X POST https://beefstewbibi-avp-rag-system.hf.space/api/generate \
+curl -X POST https://avp.capstone.csi.miamioh.edu/api/generate \
   -H 'Content-Type: application/json' \
   -d '{"message": "write a fibonacci function"}'
 ```
@@ -197,8 +197,8 @@ curl -X POST https://beefstewbibi-avp-rag-system.hf.space/api/generate \
 import httpx
 
 resp = httpx.post(
-    "https://beefstewbibi-avp-rag-system.hf.space/api/generate",
-    json={"message": "write a function to sort an array"},
+    "https://avp.capstone.csi.miamioh.edu/api/generate",
+    json={"query": "write a function to sort an array"},
 )
 resp.raise_for_status()
 data = resp.json()
@@ -208,11 +208,11 @@ print(data["generated_code"])
 **JavaScript/TypeScript:**
 ```ts
 const res = await fetch(
-  "https://beefstewbibi-avp-rag-system.hf.space/api/generate",
+  "https://avp.capstone.csi.miamioh.edu/api/generate",
   {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: "write a binary search function" }),
+    body: JSON.stringify({ query: "write a binary search function" }),
   },
 );
 const { generated_code, retrieved_functions } = await res.json();
@@ -250,7 +250,7 @@ Search the knowledge base for relevant AVP functions without generating new code
 
 **curl:**
 ```bash
-curl -X POST https://beefstewbibi-avp-rag-system.hf.space/api/retrieve \
+curl -X POST https://avp.capstone.csi.miamioh.edu/api/retrieve \
   -H 'Content-Type: application/json' \
   -d '{"query": "sorting algorithm", "k": 3}'
 ```
@@ -260,7 +260,7 @@ curl -X POST https://beefstewbibi-avp-rag-system.hf.space/api/retrieve \
 import httpx
 
 resp = httpx.post(
-    "https://beefstewbibi-avp-rag-system.hf.space/api/retrieve",
+    "https://avp.capstone.csi.miamioh.edu/api/retrieve",
     json={"query": "binary search", "k": 5},
 )
 results = resp.json()
@@ -292,10 +292,10 @@ Point any HTTP client at the production base URL. No authentication is required.
 ```python
 import httpx
 
-BASE_URL = "https://beefstewbibi-avp-rag-system.hf.space"
+BASE_URL = "https://avp.capstone.csi.miamioh.edu"
 
 def generate_avp(description: str) -> str:
-    r = httpx.post(f"{BASE_URL}/api/generate", json={"message": description}, timeout=60)
+    r = httpx.post(f"{BASE_URL}/api/generate", json={"query": query}, timeout=60)
     r.raise_for_status()
     return r.json()["generated_code"]
 
@@ -312,13 +312,13 @@ print(code)
 **TypeScript integration:**
 
 ```ts
-const BASE_URL = "https://beefstewbibi-avp-rag-system.hf.space";
+const BASE_URL = "https://avp.capstone.csi.miamioh.edu";
 
 async function generateAVP(description: string): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: description }),
+    body: JSON.stringify({ query: query }),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   const data = await res.json();
@@ -368,9 +368,9 @@ docker compose up --build
 
 Served at `http://localhost:8000` with frontend at the root.
 
-### Backend Only (Hugging Face Spaces)
+### Backend Only 
 
-`Dockerfile` is the backend-only image used by the HF Spaces deployment. It skips the Node build stage and listens on port 7860.
+`Dockerfile` is the backend-only image .It skips the Node build stage and listens on port 7860.
 
 ```bash
 docker build -t avp-rag-backend .
@@ -380,10 +380,10 @@ docker run -p 7860:7860 \
   avp-rag-backend
 ```
 
-### With Ollama + Qwen3 (local GPU)
+### With Ollama + Qwen3.6 (local GPU)
 
 ```bash
-ollama pull qwen3:8b
+ollama pull qwen3.6:27b
 ollama serve
 ```
 
@@ -391,7 +391,7 @@ Then in `.env`:
 ```
 LLM_PROVIDER=vllm
 VLLM_BASE_URL=http://localhost:11434/v1
-VLLM_MODEL=qwen3:8b
+VLLM_MODEL=qwen3.6:27b
 VLLM_API_KEY=ollama
 ```
 
@@ -405,7 +405,7 @@ docker compose --profile vllm up --build
 
 See [docs/docker-deploy.md](docs/docker-deploy.md) for full deployment instructions:
 - **Hugging Face Spaces** — recommended, fully managed, auto-deployed via GitHub Actions
-- **Local + tunnel** — ngrok or Cloudflare Tunnel for local GPU servers
+- **Local + tunnel** — nginx reverse proxy or Cloudflare Tunnel for local GPU servers
 
 ### CI/CD
 
@@ -431,8 +431,8 @@ Three GitHub Actions workflows:
 | Name | Type | Value |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Secret | Your Anthropic API key |
-| `LLM_PROVIDER` | Variable | `anthropic` |
-| `CORS_ORIGINS` | Variable | `https://huytran088.github.io` |
+| `LLM_PROVIDER` | Variable | `vllm` |
+| `CORS_ORIGINS` | Variable | `https://avp.capstone.csi.miamioh.edu` |
 
 ## Project Structure
 
