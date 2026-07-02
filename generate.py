@@ -5,8 +5,7 @@ from retrieve import retrieve_code
 def _build_prompt(user_request: str, context_snippets: list) -> str:
     """Build the LLM prompt from retrieved snippets."""
     reference_block = "".join(
-        f"\n// From file: {s['function_name']}\n{s['code']}\n"
-        for s in context_snippets
+        f"\n// From file: {s['function_name']}\n{s['code']}\n" for s in context_snippets
     )
     return f"""
 You are an expert developer in the 'AVP' Pseudocode language.
@@ -24,7 +23,7 @@ Rules:
 2. Use 'fun name(args): ... end fun' syntax.
 3. Only use standard keywords (if, while, for, etc.) seen in the reference.
 4. Always include a function call after the function definition (e.g. result = function_name(args)).
-5. Do not explain, just output the code.
+5. Do not explain, just output the code with detailed comments.
 """
 
 
@@ -97,6 +96,6 @@ if __name__ == "__main__":
 
     while True:
         req = input("\nWhat code do you want to generate? (or 'exit'): ")
-        if req.lower() == 'exit':
+        if req.lower() == "exit":
             break
         generate_solution(req)
