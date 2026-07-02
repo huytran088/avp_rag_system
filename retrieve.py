@@ -8,8 +8,8 @@ import faiss
 import numpy as np
 
 # Suppress tokenizer warnings (safe — only affects Python warnings, not errors)
-warnings.filterwarnings('ignore', category=UserWarning)
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+warnings.filterwarnings("ignore", category=UserWarning)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Import FlagEmbedding with clear error handling instead of stderr suppression
 try:
@@ -67,25 +67,30 @@ class CodeRetriever:
         embedding_model: str = "BAAI/bge-base-en-v1.5",
         reranker_model: str = "BAAI/bge-reranker-base",
         use_reranker: bool = True,
-        device: str = "cpu",  # change to "cuda" when GPU is available
+        device: str | None = "cpu",  # change to "cuda" when GPU is available
     ):
+        if device is None:
+            device = os.environ.get("EMBEDDING_DEVICE", "cpu")
         self.device = device
         self.use_reranker = use_reranker
         self.knowledge_base = _load_knowledge_base(knowledge_base_path)
 
         # Init the Embedding Model
-        use_fp16 = (device == "cuda")
+        use_fp16 = device == "cuda"
         print(f"Loading embedding model: {embedding_model}...")
         self.embedding_model = FlagModel(
             embedding_model,
             query_instruction_for_retrieval="Represent this sentence for searching relevant code:",
             use_fp16=use_fp16,
+            devices=device,
         )
 
         # Initialize the Reranker (Cross-Encoder)
         if use_reranker:
             print(f"Loading reranker model: {reranker_model}...")
-            self.reranker = FlagReranker(reranker_model, use_fp16=use_fp16)
+            self.reranker = FlagReranker(
+                reranker_model, use_fp16=use_fp16, devices=device
+            )
         else:
             self.reranker = None
 
@@ -102,14 +107,16 @@ class CodeRetriever:
         ]
 
         embeddings = self.embedding_model.encode(self.code_texts)
-        self.embeddings = _normalize(embeddings).astype('float32')
+        self.embeddings = _normalize(embeddings).astype("float32")
 
         # Build FAISS index with Inner Product
         dimension = self.embeddings.shape[1]
         self.index = faiss.IndexFlatIP(dimension)
         self.index.add(self.embeddings)
 
-        print(f"Index built successfully. Dimension: {dimension}, Vectors: {len(self.code_texts)}")
+        print(
+            f"Index built successfully. Dimension: {dimension}, Vectors: {len(self.code_texts)}"
+        )
 
     def retrieve(
         self,
@@ -146,34 +153,36 @@ class CodeRetriever:
             if idx < 0:  # Return -1 for missing results
                 continue
             item = self.knowledge_base[idx]
-            candidates.append({
-                "index": idx,
-                "initial_score": float(scores[0][i]),
-                "function_name": item['name'],
-                "parameters": item.get('parameters', []),
-                "code": item['code_content'],
-            })
+            candidates.append(
+                {
+                    "index": idx,
+                    "initial_score": float(scores[0][i]),
+                    "function_name": item["name"],
+                    "parameters": item.get("parameters", []),
+                    "code": item["code_content"],
+                }
+            )
 
         # Reranking
         if self.use_reranker and self.reranker and candidates:
             # Cross-encoder scoring on (query, code) pairs
-            pairs = [[query, c['code']] for c in candidates]
+            pairs = [[query, c["code"]] for c in candidates]
             rerank_scores = self.reranker.compute_score(pairs)
             for c, rs in zip(candidates, rerank_scores):
-                c['rerank_score'] = float(rs)
-                c['score'] = float(rs)
-            candidates.sort(key=lambda x: x['rerank_score'], reverse=True)
+                c["rerank_score"] = float(rs)
+                c["score"] = float(rs)
+            candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
         else:
             for c in candidates:
-                c['score'] = c['initial_score']
+                c["score"] = c["initial_score"]
 
         # Return top-k results
         return [
             {
-                "score": c['score'],
-                "function_name": c['function_name'],
-                "parameters": c['parameters'],
-                "code": c['code'],
+                "score": c["score"],
+                "function_name": c["function_name"],
+                "parameters": c["parameters"],
+                "code": c["code"],
             }
             for c in candidates[:k]
         ]
@@ -206,15 +215,17 @@ if __name__ == "__main__":
     # Initialize retriever
     retriever = CodeRetriever(
         use_reranker=True,  # Set to False for faster but less accurate results
-        device="cpu",       # Change to "cuda" when GPU is available
+        device="cpu",  # Change to "cuda" when GPU is available
     )
 
     print("\nType 'exit' to quit.")
-    print("Try queries like: 'how to do a loop?', 'find maximum value', 'search algorithm'")
+    print(
+        "Try queries like: 'how to do a loop?', 'find maximum value', 'search algorithm'"
+    )
 
     while True:
         user_query = input("\nYour question: ").strip()
-        if user_query.lower() == 'exit':
+        if user_query.lower() == "exit":
             break
         if not user_query:
             continue
