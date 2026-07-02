@@ -13,11 +13,13 @@ import openai
 # but the served model still emits it. This is a bit hacky but allows us to use the same model for both providers.
 _THINK_RE = re.compile(r"^\s*<think>\s*.*?</think>\s*", re.DOTALL)
 
+
 def strip_thinking(text: str) -> str:
     """Strips leading Qwen-style reasoning blocks from the text."""
     if not text:
         return text
     return _THINK_RE.sub("", text, count=1)
+
 
 def _call_anthropic(prompt: str) -> str:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -36,14 +38,14 @@ def _call_anthropic(prompt: str) -> str:
 
 
 def _call_vllm(prompt: str) -> str:
-    base_url = os.environ.get("VLLM_BASE_URL", "http://vllm:8080/v1")
+    base_url = os.environ.get("VLLM_BASE_URL", "http://localhost:8001/v1")
     model = os.environ.get("VLLM_MODEL", "qwen3.6-27b-awq")
     api_key = os.environ.get("VLLM_API_KEY", "token-placeholder")
-    
+
     # Qwen3.6 runs in thinking mode by default, so we strip out the leading reasoning block if present to avoid confusion
     # unless VLLM_THINKING_MODE is explicitly set to "enabled".
     enable_thinking = os.environ.get("VLLM_ENABLE_THINKING", "false").lower() == "true"
-    
+
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
     response = client.chat.completions.create(
         model=model,
@@ -57,7 +59,7 @@ def _call_vllm(prompt: str) -> str:
             "chat_template_kwargs": {
                 "enable_thinking": enable_thinking,
             },
-        }
+        },
     )
     result = response.choices[0].message.content or ""
     if not enable_thinking:
