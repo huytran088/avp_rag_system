@@ -21,6 +21,7 @@ router = APIRouter(prefix="/api")
 @router.get("/health", response_model=HealthResponse)
 async def health():
     from retrieve import _retriever
+
     return HealthResponse(
         status="ok",
         retriever_loaded=_retriever is not None,
@@ -37,6 +38,7 @@ async def retrieve(body: RetrieveRequest, request: Request):
         return RetrieveResponse(results=cached, cached=True)
 
     from retrieve import retrieve_code
+
     raw = await asyncio.to_thread(retrieve_code, body.query, body.k)
     results = [RetrievedFunction(**r) for r in raw]
     retrieval_cache.set(cache_key, results)
@@ -47,18 +49,23 @@ async def retrieve(body: RetrieveRequest, request: Request):
 @limiter.limit("10/minute")
 async def generate(body: GenerateRequest, request: Request):
     if not is_provider_configured():
-        raise HTTPException(status_code=503, detail=f"{get_provider_name()} provider is not configured")
+        raise HTTPException(
+            status_code=503, detail=f"{get_provider_name()} provider is not configured"
+        )
 
-    cached = generation_cache.get(body.message)
+    cached = generation_cache.get(body.query)
     if cached is not None:
         return GenerateResponse(**cached, cached=True)
 
     from generate import generate_code
-    result = await asyncio.to_thread(generate_code, body.message)
+
+    result = await asyncio.to_thread(generate_code, body.query)
 
     response_data = {
         "generated_code": result["generated_code"],
-        "retrieved_functions": [RetrievedFunction(**r) for r in result["retrieved_functions"]],
+        "retrieved_functions": [
+            RetrievedFunction(**r) for r in result["retrieved_functions"]
+        ],
     }
-    generation_cache.set(body.message, response_data)
+    generation_cache.set(body.query, response_data)
     return GenerateResponse(**response_data, cached=False)

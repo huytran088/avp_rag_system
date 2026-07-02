@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class GenerateRequest(BaseModel):
-    message: str
+    query: str
 
 
 class RetrievedFunction(BaseModel):
