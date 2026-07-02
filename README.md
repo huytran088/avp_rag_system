@@ -3,7 +3,7 @@
 ![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![License MIT](https://img.shields.io/badge/license-MIT-green.svg)
 
-**Live demo:** [huytran088.github.io/avp_rag_system](https://huytran088.github.io/avp_rag_system/) &nbsp;|&nbsp; **API:** [beefstewbibi-avp-rag-system.hf.space](https://beefstewbibi-avp-rag-system.hf.space/api/health)
+**Live demo:** [huytran088.github.io/avp_rag_system](https://huytran088.github.io/avp_rag_system/) &nbsp;|&nbsp; **API:** [avp.capstone.csi.miamioh.edu](https://avp.capstone.csi.miamioh.edu/api/health)
 
 A Retrieval-Augmented Generation (RAG) system for the AVP pseudocode language. Uses ANTLR4 to parse AVP source files, extracts function metadata into a searchable knowledge base, and provides semantic code retrieval with optional reranking for LLM-powered code generation.
 
