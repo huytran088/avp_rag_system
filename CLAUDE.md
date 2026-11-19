@@ -80,6 +80,7 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 - `call_llm(prompt)`: Dispatches to configured provider with optional fallback
 - `_call_anthropic()`: Anthropic Claude via `anthropic` SDK
 - `_call_vllm()`: vLLM or Ollama via `openai` SDK (OpenAI-compatible API)
+- `_call_hf()` / `_call_gemini()`: hosted, cheap inference via `_openai_chat()` — HF Inference Providers router (`HF_TOKEN`, `HF_MODEL`, default `Qwen/Qwen3-Coder-30B-A3B-Instruct:cheapest`) and Gemini's OpenAI-compatible endpoint (`GEMINI_API_KEY`, `GEMINI_MODEL`). The HF Space uses `LLM_PROVIDER=hf`, `LLM_FALLBACK_PROVIDER=gemini`
 - `is_provider_configured()` / `get_provider_name()`: Used by API routes and CLI
 - Controlled by env vars: `LLM_PROVIDER`, `LLM_FALLBACK_PROVIDER`
 
