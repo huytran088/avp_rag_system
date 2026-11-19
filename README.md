@@ -189,7 +189,7 @@ Generate AVP pseudocode from a natural language description.
 ```bash
 curl -X POST https://avp.capstone.csi.miamioh.edu/api/generate \
   -H 'Content-Type: application/json' \
-  -d '{"message": "write a fibonacci function"}'
+  -d '{"query": "write a fibonacci function"}'
 ```
 
 **Python:**

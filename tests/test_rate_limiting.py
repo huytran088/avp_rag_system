@@ -5,10 +5,10 @@ class TestRateLimiting:
     def test_generate_rate_limit_enforced(self, client):
         """10 requests succeed, 11th gets 429."""
         for i in range(10):
-            resp = client.post("/api/generate", json={"message": f"request {i}"})
+            resp = client.post("/api/generate", json={"query": f"request {i}"})
             assert resp.status_code == 200, f"Request {i} failed: {resp.status_code}"
 
-        resp = client.post("/api/generate", json={"message": "one too many"})
+        resp = client.post("/api/generate", json={"query": "one too many"})
         assert resp.status_code == 429
 
     def test_retrieve_rate_limit_enforced(self, client):
@@ -29,8 +29,8 @@ class TestRateLimiting:
     def test_rate_limit_response_body(self, client):
         """429 response contains rate-limit text."""
         for i in range(10):
-            client.post("/api/generate", json={"message": f"request {i}"})
+            client.post("/api/generate", json={"query": f"request {i}"})
 
-        resp = client.post("/api/generate", json={"message": "over limit"})
+        resp = client.post("/api/generate", json={"query": "over limit"})
         assert resp.status_code == 429
         assert "Rate limit exceeded" in resp.text
