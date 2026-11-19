@@ -10,14 +10,14 @@ This is a RAG (Retrieval-Augmented Generation) system for generating code in the
 
 **Regenerate ANTLR parser files from grammar:**
 ```bash
-antlr4 -Dlanguage=Python3 -visitor Pseudocode.g4
+cd avp_rag/parser && uv run antlr4 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
 ```
 
 **Ingest AVP files into knowledge base:**
 ```bash
 uv run python ingest.py
 ```
-This parses all `.avp` files in `./data/` and outputs `code_knowledge_base.json`.
+This parses all `.avp` files in `data/` and outputs `code_knowledge_base.json` at the project root (works from any cwd). Root `ingest.py`/`retrieve.py`/`generate.py` are thin shims; `uv run python -m avp_rag.<module>` is equivalent.
 
 **Run retrieval demo:**
 ```bash
@@ -66,12 +66,17 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 
 ## Architecture
 
-### RAG Pipeline
-1. **Ingest** (`ingest.py`): Uses ANTLR4 to parse `.avp` files, extracts function declarations via `CodeStructureVisitor`, outputs JSON knowledge base
-2. **Retrieve** (`retrieve.py`): Two-stage retrieval using BGE embeddings + FAISS for fast vector search, optional BGE reranker for accuracy
-3. **Generate** (`generate.py`): Builds prompts with retrieved code context, calls `providers.call_llm()` for generation
+### Python package (`avp_rag/`)
+All backend logic lives in the `avp_rag` package; `api/` imports from it.
+- `config.py`: absolute paths (`PROJECT_ROOT`, `DATA_DIR`, `KB_PATH`, `STATIC_DIR`, `ENV_FILE`) and model defaults
+- `knowledge_base.py`: `load_kb()` / `save_kb()` — single reader for legacy (list) and tracked (`{metadata, chunks}`) formats
 
-### LLM Providers (`providers.py`)
+### RAG Pipeline
+1. **Ingest** (`avp_rag/ingest.py`): ANTLR4-parses `.avp` files, extracts function declarations via `CodeStructureVisitor`; `run_ingest()` does the incremental build and returns an `IngestResult`, `main()` prints
+2. **Retrieve** (`avp_rag/retrieve.py`): Two-stage retrieval using BGE embeddings + FAISS for fast vector search, optional BGE reranker for accuracy. `device=None` reads `EMBEDDING_DEVICE` (default `cpu`)
+3. **Generate** (`avp_rag/generate.py`): `build_context()` retrieves once and builds the prompt; `generate_code()` calls `providers.call_llm()`
+
+### LLM Providers (`avp_rag/providers.py`)
 - `call_llm(prompt)`: Dispatches to configured provider with optional fallback
 - `_call_anthropic()`: Anthropic Claude via `anthropic` SDK
 - `_call_vllm()`: vLLM or Ollama via `openai` SDK (OpenAI-compatible API)
@@ -87,7 +92,7 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 
 ### Frontend (`frontend/`)
 - React 19 + TypeScript + Tailwind CSS v4 + Vite
-- `ChatPanel` component with configurable API URL (`VITE_API_BASE_URL` env var)
+- `src/api/client.ts` (`generateCode()`, `ApiError`, `VITE_API_BASE_URL`), `src/hooks/useChat.ts` (chat state), `src/components/` (`ChatPanel` composes `MessageBubble` + `ChatInput`), `src/types.ts`
 - Deployable to GitHub Pages (CI/CD in `.github/workflows/deploy-gh-pages.yml`)
 - Playwright E2E tests in `frontend/e2e/`
 
@@ -97,8 +102,8 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 - `sync-hf-spaces.yml`: Copies `hf-space/README.md` → `README.md`, force-pushes repo to HF Spaces on push to `main` — HF Spaces then builds `Dockerfile` and restarts
 
 ### ANTLR Components
-- `Pseudocode.g4`: Grammar definition for the AVP language
-- `PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`: Generated parser files (regenerate after grammar changes)
+- `avp_rag/parser/Pseudocode.g4`: Grammar definition for the AVP language (language reference: `docs/PseudocodeSyntax.md`)
+- `avp_rag/parser/PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`: Generated parser files (regenerate after grammar changes; no listener is generated)
 - Runtime: `antlr4-python3-runtime==4.13.2`, tooling: `antlr4-tools==0.2.2` (latest as of 2026-04-23)
 
 ### AVP Language Notes
@@ -111,14 +116,15 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 
 ## Gotchas
 
-- **Relative paths in API**: `api/` code must resolve paths via `Path(__file__).parent.parent` — knowledge base and data/ are at project root
+- **Paths**: never use cwd-relative paths — use `avp_rag.config` (`KB_PATH`, `DATA_DIR`, ...). There is no `os.chdir`/`sys.path` hack in the API anymore
 - **Retriever init is slow (~30s)**: Uses BGE embedding + reranker model loading. API uses lifespan eager init to front-load this
 - **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
-- **ANTLR generated files are at project root**, not in a subdirectory — `PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`
-- **`tracking.py`**: Hash-based file change detection for incremental ingestion — imported by `ingest.py`
+- **ANTLR generated files live in `avp_rag/parser/`** and are imported via `from .parser import ...`. `antlr4` (antlr4-tools) is a dev dependency and needs network/Java on first run
+- **`avp_rag/tracking.py`**: Hash-based change detection; `source_files` keys are paths relative to `PROJECT_ROOT` (e.g. `data/foo.avp`)
+- **Mock patch targets**: patch `avp_rag.retrieve._retriever`, `avp_rag.generate.call_llm`, `avp_rag.providers._call_*`. `api/routes.py` calls `retrieval.retrieve_code`/`generation.generate_code` via module attributes so these patches take effect
 - **React 19 event types**: Named exports (`FormEvent`, `KeyboardEvent`) are deprecated — use `React.FormEvent` or structural types
 - **Tailwind CSS v4**: Uses `@import "tailwindcss"` in CSS, no `tailwind.config.js`
-- **`providers.py` reuses `vllm` provider for Ollama**: Ollama's OpenAI-compatible API at `:11434/v1` works with `_call_vllm()`. Set `VLLM_BASE_URL=http://localhost:11434/v1` and `VLLM_API_KEY=ollama`
+- **`avp_rag/providers.py` reuses `vllm` provider for Ollama**: Ollama's OpenAI-compatible API at `:11434/v1` works with `_call_vllm()`. Set `VLLM_BASE_URL=http://localhost:11434/v1` and `VLLM_API_KEY=ollama`
 - **`VITE_API_BASE_URL` is build-time only**: Vite inlines it during build. Changing it requires rebuilding the frontend, not just restarting
 - **`CORS_ORIGINS` in `.env`**: Comma-separated extra origins appended to the default localhost origins in `api/main.py`. Restart backend after changing
 - **`VITE_BASE_PATH`**: Set to `/avp_rag_system/` for GitHub Pages deployment (repo subpath). Defaults to `/` for local dev
@@ -129,7 +135,7 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 
 ## API Details
 
-- `POST /api/generate` (10/min) — calls `generate_code()` from `generate.py`, returns `{generated_code, retrieved_functions, cached}`
+- `POST /api/generate` (10/min) — calls `generate_code()` from `avp_rag/generate.py`, returns `{generated_code, retrieved_functions, cached}`
 - `POST /api/retrieve` (30/min) — calls `retrieve_code()`, returns scored function matches
 - `GET /api/health` — returns `{status, retriever_loaded, provider_configured}`
 - TTL cache (1hr, 100 entries) for both retrieval and generation results

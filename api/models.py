@@ -1,5 +1,3 @@
-# from typing import None
-
 from pydantic import BaseModel, Field
 
 

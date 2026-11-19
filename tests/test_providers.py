@@ -1,15 +1,11 @@
-"""Unit tests for providers.py"""
+"""Unit tests for avp_rag/providers.py"""
 
 import os
-import sys
 from unittest.mock import patch, MagicMock
 
 import pytest
 
-# Ensure project root is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from providers import (
+from avp_rag.providers import (
     _call_anthropic,
     _call_vllm,
     call_llm,
@@ -19,7 +15,7 @@ from providers import (
 
 
 class TestCallAnthropic:
-    @patch("providers.anthropic.Anthropic")
+    @patch("avp_rag.providers.anthropic.Anthropic")
     def test_returns_text(self, mock_cls):
         mock_client = MagicMock()
         mock_cls.return_value = mock_client
@@ -41,7 +37,7 @@ class TestCallAnthropic:
 
 
 class TestCallVllm:
-    @patch("providers.openai.OpenAI")
+    @patch("avp_rag.providers.openai.OpenAI")
     def test_returns_text(self, mock_cls):
         mock_client = MagicMock()
         mock_cls.return_value = mock_client
@@ -60,22 +56,22 @@ class TestCallVllm:
 
 
 class TestCallLlm:
-    @patch("providers._call_anthropic")
+    @patch("avp_rag.providers._call_anthropic")
     def test_dispatches_to_anthropic(self, mock_anthropic):
         mock_anthropic.return_value = "anthropic result"
         with patch.dict(os.environ, {"LLM_PROVIDER": "anthropic"}):
             result = call_llm("prompt")
         assert result == "anthropic result"
 
-    @patch("providers._call_vllm")
+    @patch("avp_rag.providers._call_vllm")
     def test_dispatches_to_vllm(self, mock_vllm):
         mock_vllm.return_value = "vllm result"
         with patch.dict(os.environ, {"LLM_PROVIDER": "vllm"}):
             result = call_llm("prompt")
         assert result == "vllm result"
 
-    @patch("providers._call_vllm")
-    @patch("providers._call_anthropic")
+    @patch("avp_rag.providers._call_vllm")
+    @patch("avp_rag.providers._call_anthropic")
     def test_fallback_on_error(self, mock_anthropic, mock_vllm):
         mock_anthropic.side_effect = RuntimeError("no key")
         mock_vllm.return_value = "fallback result"
@@ -85,7 +81,7 @@ class TestCallLlm:
             result = call_llm("prompt")
         assert result == "fallback result"
 
-    @patch("providers._call_anthropic")
+    @patch("avp_rag.providers._call_anthropic")
     def test_no_fallback_reraises(self, mock_anthropic):
         mock_anthropic.side_effect = RuntimeError("no key")
         with patch.dict(os.environ, {"LLM_PROVIDER": "anthropic", "LLM_FALLBACK_PROVIDER": ""}):

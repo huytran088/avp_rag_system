@@ -44,11 +44,11 @@ class TestProviderFallback:
         mock_anthropic = MagicMock(return_value=MOCK_LLM_OUTPUT)
 
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, env, clear=True),
             patch("api.dependencies.limiter", fresh_limiter),
             patch("api.routes.limiter", fresh_limiter),
-            patch("providers._call_anthropic", mock_anthropic),
+            patch("avp_rag.providers._call_anthropic", mock_anthropic),
             TestClient(app) as client,
         ):
             resp = client.post("/api/generate", json={"query": "add numbers"})
@@ -65,12 +65,12 @@ class TestProviderFallback:
         mock_vllm = MagicMock(return_value=fallback_code)
 
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, env, clear=True),
             patch("api.dependencies.limiter", fresh_limiter),
             patch("api.routes.limiter", fresh_limiter),
-            patch("providers._call_anthropic", mock_anthropic),
-            patch("providers._call_vllm", mock_vllm),
+            patch("avp_rag.providers._call_anthropic", mock_anthropic),
+            patch("avp_rag.providers._call_vllm", mock_vllm),
             TestClient(app) as client,
         ):
             resp = client.post("/api/generate", json={"query": "add numbers"})
@@ -84,7 +84,7 @@ class TestProviderFallback:
         env_no_key = {"LLM_PROVIDER": "anthropic"}  # No ANTHROPIC_API_KEY
 
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, env_no_key, clear=True),
             patch("api.dependencies.limiter", fresh_limiter),
             patch("api.routes.limiter", fresh_limiter),
@@ -99,7 +99,7 @@ class TestProviderFallback:
 
         # With API key -> configured
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, {
                 "LLM_PROVIDER": "anthropic",
                 "ANTHROPIC_API_KEY": "fake",
@@ -113,7 +113,7 @@ class TestProviderFallback:
 
         # Without API key -> not configured
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, {
                 "LLM_PROVIDER": "anthropic",
             }, clear=True),
@@ -132,12 +132,12 @@ class TestProviderFallback:
         mock_vllm = MagicMock(side_effect=RuntimeError("fallback down"))
 
         with (
-            patch("retrieve._retriever", mock_retriever),
+            patch("avp_rag.retrieve._retriever", mock_retriever),
             patch.dict(os.environ, env, clear=True),
             patch("api.dependencies.limiter", fresh_limiter),
             patch("api.routes.limiter", fresh_limiter),
-            patch("providers._call_anthropic", mock_anthropic),
-            patch("providers._call_vllm", mock_vllm),
+            patch("avp_rag.providers._call_anthropic", mock_anthropic),
+            patch("avp_rag.providers._call_vllm", mock_vllm),
             TestClient(app, raise_server_exceptions=False) as client,
         ):
             resp = client.post("/api/generate", json={"query": "add numbers"})

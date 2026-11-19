@@ -35,8 +35,8 @@ def client():
     }
 
     with (
-        patch("retrieve._retriever", mock_retriever),
-        patch("generate.call_llm", return_value=MOCK_LLM_OUTPUT),
+        patch("avp_rag.retrieve._retriever", mock_retriever),
+        patch("avp_rag.generate.call_llm", return_value=MOCK_LLM_OUTPUT),
         patch.dict(os.environ, env),
     ):
         from api.main import app

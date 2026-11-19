@@ -2,7 +2,9 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException, Request
 
-from providers import get_provider_name, is_provider_configured
+from avp_rag import generate as generation
+from avp_rag import retrieve as retrieval
+from avp_rag.providers import get_provider_name, is_provider_configured
 
 from .cache import generation_cache, retrieval_cache
 from .dependencies import limiter
@@ -20,11 +22,9 @@ router = APIRouter(prefix="/api")
 
 @router.get("/health", response_model=HealthResponse)
 async def health():
-    from retrieve import _retriever
-
     return HealthResponse(
         status="ok",
-        retriever_loaded=_retriever is not None,
+        retriever_loaded=retrieval.is_retriever_loaded(),
         provider_configured=is_provider_configured(),
     )
 
@@ -37,9 +37,7 @@ async def retrieve(body: RetrieveRequest, request: Request):
     if cached is not None:
         return RetrieveResponse(results=cached, cached=True)
 
-    from retrieve import retrieve_code
-
-    raw = await asyncio.to_thread(retrieve_code, body.query, body.k)
+    raw = await asyncio.to_thread(retrieval.retrieve_code, body.query, body.k)
     results = [RetrievedFunction(**r) for r in raw]
     retrieval_cache.set(cache_key, results)
     return RetrieveResponse(results=results, cached=False)
@@ -57,9 +55,7 @@ async def generate(body: GenerateRequest, request: Request):
     if cached is not None:
         return GenerateResponse(**cached, cached=True)
 
-    from generate import generate_code
-
-    result = await asyncio.to_thread(generate_code, body.query)
+    result = await asyncio.to_thread(generation.generate_code, body.query)
 
     response_data = {
         "generated_code": result["generated_code"],
