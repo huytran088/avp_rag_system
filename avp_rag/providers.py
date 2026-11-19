@@ -67,13 +67,57 @@ def _call_vllm(prompt: str) -> str:
     return result
 
 
+HF_ROUTER_URL = "https://router.huggingface.co/v1"
+GEMINI_OPENAI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# ":cheapest" asks the HF router to pick the lowest-cost provider serving the model.
+DEFAULT_HF_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct:cheapest"
+DEFAULT_GEMINI_MODEL = "gemini-flash-lite-latest"
+
+
+def _openai_chat(base_url: str, api_key: str, model: str, prompt: str) -> str:
+    """Plain chat completion against a hosted OpenAI-compatible endpoint."""
+    client = openai.OpenAI(base_url=base_url, api_key=api_key)
+    response = client.chat.completions.create(
+        model=model,
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "1024")),
+        temperature=float(os.environ.get("LLM_TEMPERATURE", "0.6")),
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return strip_thinking(response.choices[0].message.content or "")
+
+
+def _call_hf(prompt: str) -> str:
+    """HF Inference Providers router (Qwen, GLM, ...) billed to HF_TOKEN's account."""
+    api_key = os.environ.get("HF_TOKEN")
+    if not api_key:
+        raise RuntimeError("HF_TOKEN is not set. Set it to enable HF Inference Providers.")
+    model = os.environ.get("HF_MODEL", DEFAULT_HF_MODEL)
+    return _openai_chat(HF_ROUTER_URL, api_key, model, prompt)
+
+
+def _call_gemini(prompt: str) -> str:
+    """Google Gemini via its OpenAI-compatible endpoint."""
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set. Set it to enable Gemini.")
+    model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    return _openai_chat(GEMINI_OPENAI_URL, api_key, model, prompt)
+
+
 # .__name__ references make Pyright see these as accessed; getattr re-resolves at
 # call time so unittest.mock.patch can still override them.
 _PROVIDER_FN_NAMES = {
     "anthropic": _call_anthropic.__name__,
     "vllm": _call_vllm.__name__,
+    "hf": _call_hf.__name__,
+    "gemini": _call_gemini.__name__,
 }
-_CONFIG_ENV_VAR = {"anthropic": "ANTHROPIC_API_KEY", "vllm": "VLLM_BASE_URL"}
+_CONFIG_ENV_VAR = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "vllm": "VLLM_BASE_URL",
+    "hf": "HF_TOKEN",
+    "gemini": "GEMINI_API_KEY",
+}
 
 
 def _get_provider_fn(name: str) -> Callable[[str], str]:

@@ -8,6 +8,11 @@ import pytest
 from avp_rag.providers import (
     _call_anthropic,
     _call_vllm,
+    _call_hf,
+    _call_gemini,
+    DEFAULT_HF_MODEL,
+    GEMINI_OPENAI_URL,
+    HF_ROUTER_URL,
     call_llm,
     is_provider_configured,
     get_provider_name,
@@ -117,3 +122,59 @@ class TestGetProviderName:
     def test_explicit(self):
         with patch.dict(os.environ, {"LLM_PROVIDER": "vllm"}):
             assert get_provider_name() == "vllm"
+
+
+def _mock_openai(mock_cls, content="hosted output"):
+    mock_client = MagicMock()
+    mock_cls.return_value = mock_client
+    mock_choice = MagicMock()
+    mock_choice.message.content = content
+    mock_client.chat.completions.create.return_value = MagicMock(choices=[mock_choice])
+    return mock_client
+
+
+class TestCallHostedProviders:
+    @patch("avp_rag.providers.openai.OpenAI")
+    def test_hf_uses_router_and_default_model(self, mock_cls):
+        client = _mock_openai(mock_cls)
+        with patch.dict(os.environ, {"HF_TOKEN": "hf_x"}, clear=True):
+            assert _call_hf("hello") == "hosted output"
+        mock_cls.assert_called_once_with(base_url=HF_ROUTER_URL, api_key="hf_x")
+        assert client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_HF_MODEL
+
+    @patch("avp_rag.providers.openai.OpenAI")
+    def test_hf_model_override_and_think_stripped(self, mock_cls):
+        client = _mock_openai(mock_cls, "<think>hmm</think>\nfun f():\nend fun")
+        env = {"HF_TOKEN": "hf_x", "HF_MODEL": "zai-org/GLM-5.3-Flash"}
+        with patch.dict(os.environ, env, clear=True):
+            assert _call_hf("hello") == "fun f():\nend fun"
+        assert client.chat.completions.create.call_args.kwargs["model"] == "zai-org/GLM-5.3-Flash"
+
+    @patch("avp_rag.providers.openai.OpenAI")
+    def test_gemini_uses_openai_compat_endpoint(self, mock_cls):
+        _mock_openai(mock_cls)
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "g"}, clear=True):
+            assert _call_gemini("hello") == "hosted output"
+        mock_cls.assert_called_once_with(base_url=GEMINI_OPENAI_URL, api_key="g")
+
+    @pytest.mark.parametrize("fn", [_call_hf, _call_gemini])
+    def test_missing_key_raises(self, fn):
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(RuntimeError):
+                fn("hello")
+
+    @pytest.mark.parametrize(
+        "provider,key", [("hf", "HF_TOKEN"), ("gemini", "GEMINI_API_KEY")]
+    )
+    def test_is_configured(self, provider, key):
+        with patch.dict(os.environ, {"LLM_PROVIDER": provider}, clear=True):
+            assert is_provider_configured() is False
+        with patch.dict(os.environ, {"LLM_PROVIDER": provider, key: "k"}, clear=True):
+            assert is_provider_configured() is True
+
+    @patch("avp_rag.providers._call_gemini", return_value="from gemini")
+    @patch("avp_rag.providers._call_hf", side_effect=RuntimeError("down"))
+    def test_hf_falls_back_to_gemini(self, mock_hf, mock_gemini):
+        env = {"LLM_PROVIDER": "hf", "LLM_FALLBACK_PROVIDER": "gemini"}
+        with patch.dict(os.environ, env, clear=True):
+            assert call_llm("p") == "from gemini"
