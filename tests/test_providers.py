@@ -55,7 +55,7 @@ class TestCallVllm:
 
         assert result == "vllm output"
         mock_cls.assert_called_once_with(
-            base_url="http://vllm:8080/v1", api_key="token-placeholder"
+            base_url="http://localhost:8001/v1", api_key="token-placeholder"
         )
 
 
