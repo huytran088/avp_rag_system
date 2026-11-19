@@ -437,15 +437,16 @@ Three GitHub Actions workflows:
 ## Project Structure
 
 ```
-├── Pseudocode.g4            # ANTLR4 grammar definition
-├── PseudocodeLexer.py       # Generated lexer
-├── PseudocodeParser.py      # Generated parser
-├── PseudocodeVisitor.py     # Generated visitor
-├── ingest.py                # Parses AVP files, builds knowledge base
-├── retrieve.py              # Two-stage semantic retrieval
-├── generate.py              # RAG prompt generation
-├── providers.py             # Multi-provider LLM abstraction (Anthropic, vLLM)
-├── tracking.py              # Hash-based incremental file tracking
+├── avp_rag/                 # Core Python package
+│   ├── config.py            # Project paths and model defaults
+│   ├── knowledge_base.py    # Knowledge base JSON load/save
+│   ├── ingest.py            # Parses AVP files, builds knowledge base
+│   ├── retrieve.py          # Two-stage semantic retrieval
+│   ├── generate.py          # RAG prompt generation
+│   ├── providers.py         # Multi-provider LLM abstraction (Anthropic, vLLM)
+│   ├── tracking.py          # Hash-based incremental file tracking
+│   └── parser/              # ANTLR4 grammar (Pseudocode.g4) + generated lexer/parser/visitor
+├── ingest.py, retrieve.py, generate.py   # Thin CLI shims for the avp_rag modules
 ├── api/                     # FastAPI REST API
 │   ├── main.py              # App setup, CORS, static files
 │   ├── routes.py            # /health, /retrieve, /generate endpoints
@@ -454,15 +455,16 @@ Three GitHub Actions workflows:
 │   └── dependencies.py      # Rate limiter config
 ├── frontend/                # React + TypeScript chat UI
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── ChatPanel.tsx  # Main chat interface
+│   │   ├── components/      # ChatPanel, MessageBubble, ChatInput
+│   │   ├── hooks/useChat.ts # Chat state (messages, loading, error)
+│   │   ├── api/client.ts    # /api/generate client + ApiError
+│   │   ├── types.ts         # Shared API/message types
 │   │   ├── main.tsx         # React entry + routing (BrowserRouter w/ basename)
 │   │   └── App.tsx          # Root component
 │   ├── e2e/
 │   │   └── chat.spec.ts     # Playwright E2E tests
 │   └── vite.config.ts       # Vite + API proxy config
-├── tests/                   # Unit tests
-│   └── test_providers.py    # Provider abstraction tests
+├── tests/                   # Backend unit + API integration tests (pytest)
 ├── data/                    # Sample AVP source files
 │   ├── algorithms.avp
 │   ├── array_ops.avp
@@ -473,14 +475,14 @@ Three GitHub Actions workflows:
 │   ├── deploy-gh-pages.yml  # Frontend deploy to GitHub Pages
 │   └── sync-hf-spaces.yml   # Backend deploy to Hugging Face Spaces
 ├── docs/
-│   └── docker-deploy.md     # Full deployment guide
+│   ├── docker-deploy.md     # Full deployment guide
+│   └── PseudocodeSyntax.md  # AVP language reference
 ├── hf-space/
 │   └── README.md            # HF Spaces YAML metadata (copied to root by sync workflow)
 ├── Dockerfile               # Backend-only image (HF Spaces, port 7860)
 ├── Dockerfile.full          # Full-stack image (docker compose, port 8000)
 ├── docker-compose.yml       # Local full-stack deployment
-├── .env.example             # Environment variable template
-└── PseudocodeSyntax.md      # AVP language reference
+└── .env.example             # Environment variable template
 ```
 
 ## AVP Language
@@ -496,7 +498,7 @@ fun factorial(n):
 end fun
 ```
 
-See [PseudocodeSyntax.md](PseudocodeSyntax.md) for the full language reference.
+See [PseudocodeSyntax.md](docs/PseudocodeSyntax.md) for the full language reference.
 
 ## License
 
