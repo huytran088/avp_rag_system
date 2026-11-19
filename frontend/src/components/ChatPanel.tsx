@@ -31,7 +31,7 @@ export default function ChatPanel() {
       const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({ query: trimmed }),
       });
 
       if (res.status === 429) {

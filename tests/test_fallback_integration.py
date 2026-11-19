@@ -51,7 +51,7 @@ class TestProviderFallback:
             patch("providers._call_anthropic", mock_anthropic),
             TestClient(app) as client,
         ):
-            resp = client.post("/api/generate", json={"message": "add numbers"})
+            resp = client.post("/api/generate", json={"query": "add numbers"})
             assert resp.status_code == 200
             assert resp.json()["generated_code"] == MOCK_LLM_OUTPUT
             mock_anthropic.assert_called()
@@ -73,7 +73,7 @@ class TestProviderFallback:
             patch("providers._call_vllm", mock_vllm),
             TestClient(app) as client,
         ):
-            resp = client.post("/api/generate", json={"message": "add numbers"})
+            resp = client.post("/api/generate", json={"query": "add numbers"})
             assert resp.status_code == 200
             assert resp.json()["generated_code"] == fallback_code
             mock_vllm.assert_called()
@@ -90,7 +90,7 @@ class TestProviderFallback:
             patch("api.routes.limiter", fresh_limiter),
             TestClient(app) as client,
         ):
-            resp = client.post("/api/generate", json={"message": "add numbers"})
+            resp = client.post("/api/generate", json={"query": "add numbers"})
             assert resp.status_code == 503
             assert "not configured" in resp.json()["detail"]
 
@@ -140,5 +140,5 @@ class TestProviderFallback:
             patch("providers._call_vllm", mock_vllm),
             TestClient(app, raise_server_exceptions=False) as client,
         ):
-            resp = client.post("/api/generate", json={"message": "add numbers"})
+            resp = client.post("/api/generate", json={"query": "add numbers"})
             assert resp.status_code == 500
