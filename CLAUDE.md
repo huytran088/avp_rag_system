@@ -9,57 +9,69 @@ This is a RAG (Retrieval-Augmented Generation) system for generating code in the
 ## Commands
 
 **Regenerate ANTLR parser files from grammar:**
+
 ```bash
 cd avp_rag/parser && uv run antlr4 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
 ```
 
 **Ingest AVP files into knowledge base:**
+
 ```bash
 uv run python ingest.py
 ```
+
 This parses all `.avp` files in `data/` and outputs `code_knowledge_base.json` at the project root (works from any cwd). Root `ingest.py`/`retrieve.py`/`generate.py` are thin shims; `uv run python -m avp_rag.<module>` is equivalent.
 
 **Run retrieval demo:**
+
 ```bash
 uv run python retrieve.py
 ```
 
 **Run generation demo:**
+
 ```bash
 uv run python generate.py
 ```
 
 **Start API server (development):**
+
 ```bash
 uv run uvicorn api.main:app --reload
 ```
 
 **Start frontend dev server:**
+
 ```bash
 cd frontend && npm run dev
 ```
 
 **Run Playwright E2E tests (requires running backend):**
+
 ```bash
 cd frontend && npm run test:e2e
 ```
 
 **Run unit tests:**
+
 ```bash
 uv run pytest tests/ -v
 ```
 
 **Docker (Anthropic-only):**
+
 ```bash
 docker compose up --build
 ```
 
 **Docker with vLLM sidecar (GPU required):**
+
 ```bash
 docker compose --profile vllm up --build
 ```
 
 **Deploy frontend to GitHub Pages (manual):**
+
 ```bash
 cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-backend-url npm run deploy:gh-pages
 ```
@@ -67,16 +79,20 @@ cd frontend && VITE_BASE_PATH=/avp_rag_system/ VITE_API_BASE_URL=https://your-ba
 ## Architecture
 
 ### Python package (`avp_rag/`)
+
 All backend logic lives in the `avp_rag` package; `api/` imports from it.
+
 - `config.py`: absolute paths (`PROJECT_ROOT`, `DATA_DIR`, `KB_PATH`, `STATIC_DIR`, `ENV_FILE`) and model defaults
 - `knowledge_base.py`: `load_kb()` / `save_kb()` — single reader for legacy (list) and tracked (`{metadata, chunks}`) formats
 
 ### RAG Pipeline
+
 1. **Ingest** (`avp_rag/ingest.py`): ANTLR4-parses `.avp` files, extracts function declarations via `CodeStructureVisitor`; `run_ingest()` does the incremental build and returns an `IngestResult`, `main()` prints
 2. **Retrieve** (`avp_rag/retrieve.py`): Two-stage retrieval using BGE embeddings + FAISS for fast vector search, optional BGE reranker for accuracy. `device=None` reads `EMBEDDING_DEVICE` (default `cpu`)
 3. **Generate** (`avp_rag/generate.py`): `build_context()` retrieves once and builds the prompt; `generate_code()` calls `providers.call_llm()`
 
 ### LLM Providers (`avp_rag/providers.py`)
+
 - `call_llm(prompt)`: Dispatches to configured provider with optional fallback
 - `_call_anthropic()`: Anthropic Claude via `anthropic` SDK
 - `_call_vllm()`: vLLM or Ollama via `openai` SDK (OpenAI-compatible API)
@@ -85,6 +101,7 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 - Controlled by env vars: `LLM_PROVIDER`, `LLM_FALLBACK_PROVIDER`
 
 ### REST API (`api/`)
+
 - `api/main.py`: FastAPI app with CORS (configurable via `CORS_ORIGINS` env var), rate limiting, lifespan-based retriever init, static file serving
 - `api/routes.py`: `/api/generate`, `/api/retrieve`, `/api/health` endpoints — uses `providers.py` for config checks
 - `api/models.py`: Pydantic request/response schemas
@@ -92,22 +109,26 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 - `api/dependencies.py`: slowapi rate limiter instance
 
 ### Frontend (`frontend/`)
+
 - React 19 + TypeScript + Tailwind CSS v4 + Vite
 - `src/api/client.ts` (`generateCode()`, `ApiError`, `VITE_API_BASE_URL`), `src/hooks/useChat.ts` (chat state), `src/components/` (`ChatPanel` composes `MessageBubble` + `ChatInput`), `src/types.ts`
 - Deployable to GitHub Pages (CI/CD in `.github/workflows/deploy-gh-pages.yml`)
 - Playwright E2E tests in `frontend/e2e/`
 
 ### CI/CD (`.github/workflows/`)
+
 - `ci.yml`: Backend pytest + frontend tsc + build on push/PR to `main`
 - `deploy-gh-pages.yml`: Builds frontend with `VITE_BASE_PATH` and `VITE_API_BASE_URL`, deploys to GitHub Pages on push to `main`
 - `sync-hf-spaces.yml`: Copies `hf-space/README.md` → `README.md`, force-pushes repo to HF Spaces on push to `main` — HF Spaces then builds `Dockerfile` and restarts
 
 ### ANTLR Components
+
 - `avp_rag/parser/Pseudocode.g4`: Grammar definition for the AVP language (language reference: `docs/PseudocodeSyntax.md`)
 - `avp_rag/parser/PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`: Generated parser files (regenerate after grammar changes; no listener is generated)
 - Runtime: `antlr4-python3-runtime==4.13.2`, tooling: `antlr4-tools==0.2.2` (latest as of 2026-04-23)
 
 ### AVP Language Notes
+
 - Python-like syntax with `fun`/`end fun`, `if`/`end if`, `for`/`end for`, `while`/`end while`
 - Newlines are significant (statement separators)
 - Strict 4-space indentation
@@ -146,12 +167,14 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 ## Docker
 
 Two Dockerfiles:
+
 - `Dockerfile` — backend-only image for Hugging Face Spaces (port 7860, `--frozen` uv install, no Node stage)
 - `Dockerfile.full` — full-stack image for `docker compose` (Node builds frontend → Python runtime, port 8000)
 
 `docker-compose.yml` explicitly points to `Dockerfile.full` via `build.dockerfile`.
 
 Other notes:
+
 - `static/` directory: built frontend copied here, served by FastAPI catch-all mount
 - Knowledge base pre-generated during build (`RUN uv run python ingest.py`)
 - Health check has 120s start period (model loading)
@@ -162,11 +185,13 @@ Other notes:
 - See `docs/docker-deploy.md` for full deployment guide (HF Spaces, Ollama, tunnels)
 
 ## Debugging
+
 Whenever you scan the project and found a bug, which could an error or an exception, don't try to fix it right away. Instead, create a test case suite in a separated folder (e.g. tests/), make sure that the code can pass all tests after fixing the bugs.
 
 ### Code Intelligence
 
 Prefer LSP over Grep/Glob/Read for code navigation:
+
 - `goToDefinition` / `goToImplementation` to jump to source
 - `findReferences` to see all usages across the codebase
 - `workspaceSymbol` to find where something is defined
@@ -183,3 +208,10 @@ strings, config values) where LSP doesn't help.
 After writing or editing code, check LSP diagnostics before
 moving on. Fix any type errors or missing imports immediately.
 
+## Git and github
+
+- Base branch: main. Branch names: feat/<issue>-<slug>, fix/<issue>-<slug>, docs/<slug>.
+- Commits: Conventional Commits (feat:, fix:, test:, docs:, refactor:), one logical change each, tests passing.
+- Never push, force-push, open, merge, or close PRs; I do those. Never rewrite history on main.
+- Use `gh` for reading issues, PRs, checks and review comments.
+- Wiki repo: ../<repo>.wiki (link pages with [[Page Name]], keep \_Sidebar.md as the table of contents, commit but never push)
