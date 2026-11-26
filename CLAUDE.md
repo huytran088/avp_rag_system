@@ -157,7 +157,7 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 
 ## API Details
 
-- `POST /api/generate` (10/min) — calls `generate_code()` from `avp_rag/generate.py`, returns `{generated_code, retrieved_functions, cached}`
+- `POST /api/generate` (10/min) — body `{query, code?, instructions?}`; calls `generate_code()` from `avp_rag/generate.py`, returns `{generated_code, retrieved_functions, cached}`. Retrieval searches `query` (+ `code`); `instructions` only go into the prompt. Cache key covers all three fields
 - `POST /api/retrieve` (30/min) — calls `retrieve_code()`, returns scored function matches
 - `GET /api/health` — returns `{status, retriever_loaded, provider_configured}`
 - TTL cache (1hr, 100 entries) for both retrieval and generation results

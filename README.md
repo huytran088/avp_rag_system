@@ -214,9 +214,26 @@ curl https://beefstewbibi-avp-rag-system.hf.space/api/health
 
 Generate AVP pseudocode from a natural language description. **Rate limit:** 10 requests/minute per IP.
 
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `query` | string (1–2000 chars) | yes | The user's request. Used for retrieval and as the prompt's `TASK` |
+| `code` | string (≤ 20000 chars) | no | Current editor code. Added to the prompt and to the retrieval search |
+| `instructions` | string (≤ 8000 chars) | no | Extra language rules from the client. Added to the prompt only, never searched |
+
+The cache key covers all three fields.
+
 **Request:**
 ```json
 { "query": "write a function to find the maximum value in an array" }
+```
+
+**Request with editor context** (as sent by the [AVP app](https://huytran088.github.io/avp/)):
+```json
+{
+  "query": "make it sort in descending order",
+  "code": "fun Bubble_Sort(array):\n    ...\nend fun",
+  "instructions": "All function names must start with a capital letter."
+}
 ```
 
 **Response:**
