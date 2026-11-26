@@ -52,7 +52,10 @@ class TestCallVllm:
         mock_response.choices = [mock_choice]
         mock_client.chat.completions.create.return_value = mock_response
 
-        result = _call_vllm("hello")
+        # A local .env (loaded by api.main in other tests) may set these; test the defaults
+        env = {k: v for k, v in os.environ.items() if k not in ("VLLM_BASE_URL", "VLLM_API_KEY")}
+        with patch.dict(os.environ, env, clear=True):
+            result = _call_vllm("hello")
 
         assert result == "vllm output"
         mock_cls.assert_called_once_with(
