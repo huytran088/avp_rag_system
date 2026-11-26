@@ -2,7 +2,12 @@ from pydantic import BaseModel, Field
 
 
 class GenerateRequest(BaseModel):
-    query: str
+    # The user's request; used (with `code`) for retrieval
+    query: str = Field(min_length=1, max_length=2000)
+    # Current editor code the request may refer to
+    code: str | None = Field(default=None, max_length=20000)
+    # Extra client-side language rules; added to the prompt, never embedded
+    instructions: str | None = Field(default=None, max_length=8000)
 
 
 class RetrievedFunction(BaseModel):
