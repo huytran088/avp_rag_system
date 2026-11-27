@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import json
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -43,6 +45,14 @@ async def retrieve(body: RetrieveRequest, request: Request):
     return RetrieveResponse(results=results, cached=False)
 
 
+def _generate_cache_key(body: GenerateRequest) -> str:
+    """Plain query keeps its old key; requests with code/instructions hash every field."""
+    if body.code is None and body.instructions is None:
+        return body.query
+    payload = json.dumps([body.query, body.code, body.instructions])
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 @router.post("/generate", response_model=GenerateResponse)
 @limiter.limit("10/minute")
 async def generate(body: GenerateRequest, request: Request):
@@ -51,11 +61,17 @@ async def generate(body: GenerateRequest, request: Request):
             status_code=503, detail=f"{get_provider_name()} provider is not configured"
         )
 
-    cached = generation_cache.get(body.query)
+    cache_key = _generate_cache_key(body)
+    cached = generation_cache.get(cache_key)
     if cached is not None:
         return GenerateResponse(**cached, cached=True)
 
-    result = await asyncio.to_thread(generation.generate_code, body.query)
+    result = await asyncio.to_thread(
+        generation.generate_code,
+        body.query,
+        code=body.code,
+        instructions=body.instructions,
+    )
 
     response_data = {
         "generated_code": result["generated_code"],
@@ -63,5 +79,5 @@ async def generate(body: GenerateRequest, request: Request):
             RetrievedFunction(**r) for r in result["retrieved_functions"]
         ],
     }
-    generation_cache.set(body.query, response_data)
+    generation_cache.set(cache_key, response_data)
     return GenerateResponse(**response_data, cached=False)
