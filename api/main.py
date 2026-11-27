@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -17,6 +18,11 @@ from .routes import router
 
 # Must run before CORS_ORIGINS is read below; providers read env at call time
 load_dotenv(config.ENV_FILE)
+
+# uvicorn only configures its own loggers; without this, INFO messages from
+# the app (e.g. the rate-limit key note in api.dependencies) are dropped
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 
 @asynccontextmanager
