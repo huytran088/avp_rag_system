@@ -1,0 +1,182 @@
+{
+  "rerank": {
+    "labeled": 33,
+    "gaps": [
+      "distribution_counting_sort",
+      "merge_sort",
+      "heap_sort",
+      "dutch_national_flag",
+      "move_zeros",
+      "reverse_array",
+      "rotate_left",
+      "two_sum_sorted",
+      "majority_element"
+    ],
+    "recall@1": 0.6515151515151515,
+    "recall@2": 0.7272727272727273,
+    "recall@5": 0.8787878787878788,
+    "mrr": 0.7434343434343434,
+    "misses@2": [
+      {
+        "id": "shell_sort",
+        "expected": [
+          "Insertion_Sort"
+        ],
+        "top2": [
+          "Selection_Sort",
+          "Comparison_Counting_Sort"
+        ]
+      },
+      {
+        "id": "odd_even_sort",
+        "expected": [
+          "Bubble_Sort"
+        ],
+        "top2": [
+          "Comparison_Counting_Sort",
+          "Selection_Sort"
+        ]
+      },
+      {
+        "id": "lower_bound",
+        "expected": [
+          "Binary_Search"
+        ],
+        "top2": [
+          "Insertion_Sort",
+          "Selection_Sort"
+        ]
+      },
+      {
+        "id": "count_occurrences",
+        "expected": [
+          "Linear_Search"
+        ],
+        "top2": [
+          "Comparison_Counting_Sort",
+          "Binary_Search"
+        ]
+      },
+      {
+        "id": "prefix_sums",
+        "expected": [
+          "sum_array"
+        ],
+        "top2": [
+          "Insertion_Sort",
+          "Lomuto_Partition"
+        ]
+      },
+      {
+        "id": "is_palindrome",
+        "expected": [
+          "check_unique"
+        ],
+        "top2": [
+          "Hoare_Partition",
+          "check_status"
+        ]
+      },
+      {
+        "id": "max_element",
+        "expected": [
+          "max_value"
+        ],
+        "top2": [
+          "Insertion_Sort",
+          "Selection_Sort"
+        ]
+      },
+      {
+        "id": "min_and_max",
+        "expected": [
+          "max_value"
+        ],
+        "top2": [
+          "Selection_Sort",
+          "Insertion_Sort"
+        ]
+      },
+      {
+        "id": "max_subarray",
+        "expected": [
+          "sum_array"
+        ],
+        "top2": [
+          "Insertion_Sort",
+          "Lomuto_Partition"
+        ]
+      }
+    ]
+  },
+  "no_rerank": {
+    "labeled": 33,
+    "gaps": [
+      "distribution_counting_sort",
+      "merge_sort",
+      "heap_sort",
+      "dutch_national_flag",
+      "move_zeros",
+      "reverse_array",
+      "rotate_left",
+      "two_sum_sorted",
+      "majority_element"
+    ],
+    "recall@1": 0.7121212121212122,
+    "recall@2": 0.8484848484848485,
+    "recall@5": 1.0,
+    "mrr": 0.8343434343434344,
+    "misses@2": [
+      {
+        "id": "shell_sort",
+        "expected": [
+          "Insertion_Sort"
+        ],
+        "top2": [
+          "Hoare_Partition",
+          "Bubble_Sort"
+        ]
+      },
+      {
+        "id": "gnome_sort",
+        "expected": [
+          "Insertion_Sort"
+        ],
+        "top2": [
+          "Bubble_Sort",
+          "Selection_Sort"
+        ]
+      },
+      {
+        "id": "remove_duplicates_sorted",
+        "expected": [
+          "check_unique"
+        ],
+        "top2": [
+          "Selection_Sort",
+          "Comparison_Counting_Sort"
+        ]
+      },
+      {
+        "id": "min_and_max",
+        "expected": [
+          "max_value"
+        ],
+        "top2": [
+          "Selection_Sort",
+          "Comparison_Counting_Sort"
+        ]
+      },
+      {
+        "id": "max_subarray",
+        "expected": [
+          "sum_array"
+        ],
+        "top2": [
+          "Linear_Search",
+          "Binary_Search"
+        ]
+      }
+    ]
+  }
+}
