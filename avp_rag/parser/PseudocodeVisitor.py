@@ -19,18 +19,13 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#ArrayLvalue.
-    def visitArrayLvalue(self, ctx:PseudocodeParser.ArrayLvalueContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#SimpleLvalue.
-    def visitSimpleLvalue(self, ctx:PseudocodeParser.SimpleLvalueContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by PseudocodeParser#assignment.
     def visitAssignment(self, ctx:PseudocodeParser.AssignmentContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#assignable.
+    def visitAssignable(self, ctx:PseudocodeParser.AssignableContext):
         return self.visitChildren(ctx)
 
 
@@ -49,8 +44,23 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#compoundAssignment.
-    def visitCompoundAssignment(self, ctx:PseudocodeParser.CompoundAssignmentContext):
+    # Visit a parse tree produced by PseudocodeParser#metadata.
+    def visitMetadata(self, ctx:PseudocodeParser.MetadataContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#metadataParams.
+    def visitMetadataParams(self, ctx:PseudocodeParser.MetadataParamsContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#metadataParam.
+    def visitMetadataParam(self, ctx:PseudocodeParser.MetadataParamContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#block.
+    def visitBlock(self, ctx:PseudocodeParser.BlockContext):
         return self.visitChildren(ctx)
 
 
@@ -59,33 +69,13 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#functionCallStatement.
-    def visitFunctionCallStatement(self, ctx:PseudocodeParser.FunctionCallStatementContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by PseudocodeParser#paramList.
     def visitParamList(self, ctx:PseudocodeParser.ParamListContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#annotatedParam.
-    def visitAnnotatedParam(self, ctx:PseudocodeParser.AnnotatedParamContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#annotation.
-    def visitAnnotation(self, ctx:PseudocodeParser.AnnotationContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#annotationArgList.
-    def visitAnnotationArgList(self, ctx:PseudocodeParser.AnnotationArgListContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#annotationArg.
-    def visitAnnotationArg(self, ctx:PseudocodeParser.AnnotationArgContext):
+    # Visit a parse tree produced by PseudocodeParser#param.
+    def visitParam(self, ctx:PseudocodeParser.ParamContext):
         return self.visitChildren(ctx)
 
 
@@ -94,13 +84,18 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#regularForLoop.
-    def visitRegularForLoop(self, ctx:PseudocodeParser.RegularForLoopContext):
+    # Visit a parse tree produced by PseudocodeParser#forLoop.
+    def visitForLoop(self, ctx:PseudocodeParser.ForLoopContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#forUpdate.
-    def visitForUpdate(self, ctx:PseudocodeParser.ForUpdateContext):
+    # Visit a parse tree produced by PseudocodeParser#whileLoop.
+    def visitWhileLoop(self, ctx:PseudocodeParser.WhileLoopContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#doWhileLoop.
+    def visitDoWhileLoop(self, ctx:PseudocodeParser.DoWhileLoopContext):
         return self.visitChildren(ctx)
 
 
@@ -109,8 +104,8 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#whileLoop.
-    def visitWhileLoop(self, ctx:PseudocodeParser.WhileLoopContext):
+    # Visit a parse tree produced by PseudocodeParser#functionCallStmt.
+    def visitFunctionCallStmt(self, ctx:PseudocodeParser.FunctionCallStmtContext):
         return self.visitChildren(ctx)
 
 
@@ -124,8 +119,13 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#block.
-    def visitBlock(self, ctx:PseudocodeParser.BlockContext):
+    # Visit a parse tree produced by PseudocodeParser#continueStatement.
+    def visitContinueStatement(self, ctx:PseudocodeParser.ContinueStatementContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PseudocodeParser#expressionList.
+    def visitExpressionList(self, ctx:PseudocodeParser.ExpressionListContext):
         return self.visitChildren(ctx)
 
 
@@ -134,23 +134,13 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#OrExpr.
-    def visitOrExpr(self, ctx:PseudocodeParser.OrExprContext):
+    # Visit a parse tree produced by PseudocodeParser#logicalOrExpression.
+    def visitLogicalOrExpression(self, ctx:PseudocodeParser.LogicalOrExpressionContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#OrPass.
-    def visitOrPass(self, ctx:PseudocodeParser.OrPassContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#AndExpr.
-    def visitAndExpr(self, ctx:PseudocodeParser.AndExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#AndPass.
-    def visitAndPass(self, ctx:PseudocodeParser.AndPassContext):
+    # Visit a parse tree produced by PseudocodeParser#logicalAndExpression.
+    def visitLogicalAndExpression(self, ctx:PseudocodeParser.LogicalAndExpressionContext):
         return self.visitChildren(ctx)
 
 
@@ -159,18 +149,8 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#ComparisonPass.
-    def visitComparisonPass(self, ctx:PseudocodeParser.ComparisonPassContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by PseudocodeParser#AddExpr.
     def visitAddExpr(self, ctx:PseudocodeParser.AddExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#AdditivePass.
-    def visitAdditivePass(self, ctx:PseudocodeParser.AdditivePassContext):
         return self.visitChildren(ctx)
 
 
@@ -179,18 +159,8 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#MultiplicativePass.
-    def visitMultiplicativePass(self, ctx:PseudocodeParser.MultiplicativePassContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#PowExpr.
-    def visitPowExpr(self, ctx:PseudocodeParser.PowExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#PowerPass.
-    def visitPowerPass(self, ctx:PseudocodeParser.PowerPassContext):
+    # Visit a parse tree produced by PseudocodeParser#powerExpression.
+    def visitPowerExpression(self, ctx:PseudocodeParser.PowerExpressionContext):
         return self.visitChildren(ctx)
 
 
@@ -199,8 +169,8 @@ class PseudocodeVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PseudocodeParser#UnaryPass.
-    def visitUnaryPass(self, ctx:PseudocodeParser.UnaryPassContext):
+    # Visit a parse tree produced by PseudocodeParser#PrimaryExpr.
+    def visitPrimaryExpr(self, ctx:PseudocodeParser.PrimaryExprContext):
         return self.visitChildren(ctx)
 
 
@@ -221,11 +191,6 @@ class PseudocodeVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PseudocodeParser#AtomExpression.
     def visitAtomExpression(self, ctx:PseudocodeParser.AtomExpressionContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PseudocodeParser#expressionList.
-    def visitExpressionList(self, ctx:PseudocodeParser.ExpressionListContext):
         return self.visitChildren(ctx)
 
 

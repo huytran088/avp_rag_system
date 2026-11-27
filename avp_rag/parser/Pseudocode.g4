@@ -1,123 +1,117 @@
 grammar Pseudocode;
 
-// NL is the statement separator
-program         : NL* statement (NL+ statement)* NL* EOF;
+// Parser Rules
+program         : (statement | NL)* EOF;
 
-statement
-    : annotation? assignment SEMICOLON?
-    | functionDecl
-    | annotation? functionCallStatement SEMICOLON?
-    | forEachLoop
-    | regularForLoop
-    | annotation? ifStatement
-    | annotation? whileLoop
-    | annotation? returnStatement SEMICOLON?
-    | annotation? breakStatement SEMICOLON?
-    | annotation? compoundAssignment SEMICOLON?
-    ;
+// Statements can end with newlines or optional semicolons
+statement       : metadata* (
+                    assignment
+                  | functionDecl
+                  | functionCallStmt
+                  | forEachLoop
+                  | forLoop
+                  | doWhileLoop
+                  | ifStatement
+                  | whileLoop
+                  | returnStatement
+                  | breakStatement
+                  | continueStatement
+                  ) (SEMI | NL)*;
 
-// lvalue covers both simple variable and array-element assignment targets
-lvalue          : ID LBRACK expression RBRACK   # ArrayLvalue
-                | ID                             # SimpleLvalue
-                ;
+// Supports standard '=' as well as '+=' and '-='
+assignment      : metadata* assignable (EQ | PLUS_EQ | MINUS_EQ) (expression | arrayInitialization) ;
 
-assignment      : lvalue EQ (expression | arrayInitialization);
+// Supports variable assignment and array index assignment (e.g., arr[j+1] = key)
+assignable      : ID | ID LBRACK expression RBRACK ;
 
-// 'arr' prefix is required for all array forms per language spec
 arrayInitialization
-    : ARR LBRACK start=expression TO stop=expression RBRACK        # RangeArray
-    | ARR LPAREN size=expression (COMMA fill=expression)? RPAREN   # SizeArray
-    | ARR LBRACK expression (COMMA expression)* RBRACK            # ValueArray
+    : ARR LBRACK NL* from=expression TO NL* to=expression NL* RBRACK               # RangeArray
+    | ARR LPAREN NL* size=expression (COMMA NL* defaultVal=expression)? NL* RPAREN # SizeArray
+    | ARR LBRACK NL* expressionList? NL* RBRACK                                     # ValueArray
     ;
 
-// Compound assignment as a standalone statement (e.g. i += 1, count[j] += 1)
-compoundAssignment
-    : lvalue (PLUS_EQ | MINUS_EQ | STAR_EQ | SLASH_EQ) expression;
+// Metadata integration for variables, functions, and loops
+metadata        : AT ID LT metadataParams? GT;
+metadataParams  : metadataParam (COMMA metadataParam)*;
+metadataParam   : ID | INT | FLOAT | STRING;
 
-functionDecl         : FUN ID LPAREN paramList? RPAREN COLON NL+ (statement (NL+ statement)*)? NL* END FUN;
-functionCallStatement: ID LPAREN expressionList? RPAREN;
-paramList            : annotatedParam (COMMA annotatedParam)*;
-annotatedParam       : annotation? ID;
+// Shared block rule — used by all compound statements
+block           : statement* ;
 
-// Annotation syntax: @name<arg, ...>
-// Used as parameter decorators (@init<table>) and statement prefixes (@mark<...>, @log<...>)
-annotation          : AT ID LOW_THAN annotationArgList GREATER_THAN;
-annotationArgList   : annotationArg (COMMA annotationArg)*;
-annotationArg       : ID | STRING | INT;
+// Blocks require mandatory end identifiers
+functionDecl    : FUN ID LPAREN paramList? RPAREN COLON NL+ block END FUN;
+paramList       : param (COMMA param)*;
+param           : metadata* ID;
 
-// for-each: annotation (if any) appears between 'for' and the iterator variable
-// regular for: annotation (if any) appears between 'for' and the '('
-// Separators in regular-for header accept both ',' and ';'
-forEachLoop    : FOR annotation? ID IN ID COLON NL+ (statement (NL+ statement)*)? NL* END FOR;
-regularForLoop : FOR annotation? LPAREN ID EQ expression (COMMA | SEMICOLON) expression (COMMA | SEMICOLON) forUpdate RPAREN COLON NL+ block END FOR;
-forUpdate      : ID (PLUS_EQ | MINUS_EQ | STAR_EQ | SLASH_EQ) expression;
+// Optional parentheses for 'for-each' loops
+forEachLoop     : FOR metadata* LPAREN? ID IN ID RPAREN? COLON NL+ block END FOR;
 
-// Conditions are encased in parentheses; supports 'else if' and 'else'
-ifStatement    : IF LPAREN expression RPAREN COLON NL+ block
-                 (ELSE IF LPAREN expression RPAREN COLON NL+ block)* (ELSE COLON NL+ block)?
-                 END IF;
+// Traditional for-loop (supports both commas and semicolons as separators)
+forLoop         : FOR metadata* LPAREN assignment (COMMA | SEMI) expression (COMMA | SEMI) assignment RPAREN COLON NL+ block END FOR;
 
-whileLoop      : WHILE LPAREN expression RPAREN COLON NL+ (statement (NL+ statement)*)? NL* END WHILE;
+whileLoop       : WHILE LPAREN? expression RPAREN? COLON NL+ block END WHILE;
 
-returnStatement : RETURN expression;
+// Do-while loop to support the Hoare Partition script
+doWhileLoop     : DO COLON? NL+ block WHILE LPAREN expression RPAREN;
+
+ifStatement     : IF LPAREN? expression RPAREN? COLON NL+ block
+                  (ELSEIF LPAREN? expression RPAREN? COLON NL+ block)*
+                  (ELSE COLON NL+ block)?
+                  END IF;
+
+functionCallStmt: ID LPAREN expressionList? RPAREN;
+
+returnStatement : metadata* RETURN expression;
 breakStatement  : BREAK;
+continueStatement : CONTINUE;
 
-// Helper rule for code block
-block       : (statement (NL+ statement)*)? NL*;
+expressionList  : expression (COMMA NL* expression)*;
 
-expression
-    : logicalOrExpression
-    ;
+// Order of operations for expressions
+expression               : logicalOrExpression ;
 
-logicalOrExpression
-    : left=logicalAndExpression (OR right=logicalAndExpression)+ # OrExpr
-    | logicalAndExpression                                        # OrPass
-    ;
+logicalOrExpression      : left=logicalAndExpression (op+=OR right+=logicalAndExpression)* ;
 
-logicalAndExpression
-    : left=comparisonExpression (AND right=comparisonExpression)+ # AndExpr
-    | comparisonExpression                                         # AndPass
-    ;
+logicalAndExpression     : left=comparisonExpression (op+=AND right+=comparisonExpression)* ;
 
 comparisonExpression
-    : left=additiveExpression op=(EQEQ | LOW_THAN | GREATER_THAN | LESS_EQ | GREATER_EQ) right=additiveExpression # CompareExpr
-    | additiveExpression                                                                                             # ComparisonPass
+    : left=additiveExpression (op+=(EQEQ | NOTEQ | LESS_EQ | GREATER_EQ | LT | GT) right+=additiveExpression)* # CompareExpr
     ;
 
 additiveExpression
-    : left=multiplicativeExpression (op=(PLUS | MINUS) right=multiplicativeExpression)+ # AddExpr
-    | multiplicativeExpression                                                            # AdditivePass
+    : left=multiplicativeExpression (op+=(PLUS | MINUS) right+=multiplicativeExpression)* # AddExpr
     ;
 
 multiplicativeExpression
-    : left=powerExpression (op=(STAR | SLASH) right=powerExpression)+ # MulExpr
-    | powerExpression                                                   # MultiplicativePass
+    : left=powerExpression (op+=(STAR | SLASH | MOD) right+=powerExpression)* # MulExpr
     ;
 
-powerExpression
-    : left=unaryExpression (POW right=unaryExpression)+ # PowExpr
-    | unaryExpression                                    # PowerPass
-    ;
+powerExpression          : left=unaryExpression (op+=POWER right+=unaryExpression)* ;
 
 unaryExpression
-    : MINUS unaryExpression # UnaryMinusExpr
-    | primaryExpression     # UnaryPass
+    : MINUS unaryExpression  # UnaryMinusExpr
+    | primaryExpression      # PrimaryExpr
     ;
 
 primaryExpression
-    : LPAREN expression RPAREN         # ParenExpression
-    | ID LPAREN expressionList? RPAREN # FunctionCallExpression
-    | ID LBRACK expression RBRACK      # ArrayAccessExpression
-    | atom                             # AtomExpression
+    : LPAREN expression RPAREN             # ParenExpression
+    | ID LPAREN expressionList? RPAREN     # FunctionCallExpression
+    | ID LBRACK expression RBRACK          # ArrayAccessExpression
+    | atom                                 # AtomExpression
     ;
 
-expressionList
-    : expression (COMMA expression)*
-    ;
+atom : ID | INT | FLOAT | STRING | TRUE | FALSE | NULL_VAL;
 
-atom    : ID | INT | FLOAT | TRUE | FALSE | NULL | STRING;
+// Lexer Rules
 
-// Keywords (must be defined before ID)
+// Reserved standard types
+TYPE_INT    : 'Integer' | 'integer';
+TYPE_FLOAT  : 'float'   | 'Float';
+TYPE_STRING : 'string'  | 'String';
+TYPE_BOOL   : 'boolean' | 'Boolean';
+TYPE_DOUBLE : 'double'  | 'Double';
+
+// Reserved Keywords
 ARR     : 'arr';
 TO      : 'to';
 FUN     : 'fun';
@@ -125,50 +119,56 @@ FOR     : 'for';
 IN      : 'in';
 IF      : 'if';
 ELSE    : 'else';
+ELSEIF  : 'else if' | 'elseif';
 RETURN  : 'return';
 END     : 'end';
 WHILE   : 'while';
+DO      : 'do';
 BREAK   : 'break';
-TRUE    : 'True' | 'true';
-FALSE   : 'False';
 AND     : 'and';
 OR      : 'or';
-NULL    : 'Null';
+CONTINUE : 'continue';
 
-// Identifiers & literals
+// Literals
+TRUE    : 'True'  | 'true';
+FALSE   : 'False' | 'false';
+NULL_VAL: 'Null'  | 'null';
+
+// Symbols & Punctuation
+LBRACK  : '[';
+RBRACK  : ']';
+LPAREN  : '(';
+RPAREN  : ')';
+COLON   : ':';
+COMMA   : ',';
+SEMI    : ';';
+AT      : '@';
+
+// Operators
+PLUS_EQ : '+=';
+MINUS_EQ: '-=';
+EQ      : '=';
+EQEQ    : '==';
+NOTEQ   : '!=';
+PLUS    : '+';
+MINUS   : '-';
+POWER   : '**';
+STAR    : '*';
+SLASH   : '/';
+LESS_EQ : '<=';
+GREATER_EQ : '>=';
+LT      : '<';
+GT      : '>';
+MOD     : '%';
+MOD_EQ  : '%=';
+
+// Primitives
 ID      : [a-zA-Z_][a-zA-Z_0-9]*;
 FLOAT   : [0-9]+ '.' [0-9]+;
 INT     : [0-9]+;
 STRING  : '"' (~["\r\n])* '"';
 
-// Comments
-COMMENT : '//' ~[\r\n]* -> skip;
-
-// Symbols — multi-char tokens before their single-char prefixes
-EQEQ        : '==';
-EQ          : '=';
-LESS_EQ     : '<=';
-LOW_THAN    : '<';
-GREATER_EQ  : '>=';
-GREATER_THAN: '>';
-POW         : '**';
-STAR_EQ     : '*=';
-STAR        : '*';
-PLUS_EQ     : '+=';
-PLUS        : '+';
-MINUS_EQ    : '-=';
-MINUS       : '-';
-SLASH_EQ    : '/=';
-SLASH       : '/';
-LBRACK      : '[';
-RBRACK      : ']';
-LPAREN      : '(';
-RPAREN      : ')';
-COLON       : ':';
-COMMA       : ',';
-SEMICOLON   : ';';
-AT          : '@';
-
-// Newlines are significant; non-newline whitespace is skipped
-NL      : '\r'? '\n';
+// Whitespace & Comments
+NL      : '\r'? '\n' ; 
 WS      : [ \t]+ -> skip;
+COMMENT : ('#' | '//') ~[\r\n]* -> skip;
