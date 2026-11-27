@@ -1,4 +1,5 @@
 import os
+import threading
 import warnings
 from typing import Dict, List, Optional
 
@@ -59,6 +60,9 @@ class CodeRetriever:
             device = os.environ.get("EMBEDDING_DEVICE", "cpu")
         self.device = device
         self.use_reranker = use_reranker
+        # HF fast tokenizers aren't thread-safe ("Already borrowed"), and the
+        # API runs retrieval in worker threads, so one query at a time
+        self._lock = threading.Lock()
         self.knowledge_base = _load_knowledge_base(knowledge_base_path)
 
         # Init the Embedding Model
@@ -122,6 +126,10 @@ class CodeRetriever:
         Returns:
             List of dicts with keys: score, function_name, parameters, code
         """
+        with self._lock:
+            return self._retrieve(query, k, rerank_top_k)
+
+    def _retrieve(self, query: str, k: int, rerank_top_k: Optional[int]) -> List[Dict]:
         # Determine how many candidates to fetch for reranking
         if rerank_top_k is None:
             rerank_top_k = k * 3 if self.use_reranker else k
