@@ -2,6 +2,8 @@
 
 a1 = arr[1, 19, 5, 10, 4, 6, 7]
 
+// Partitions an array around its last element (Lomuto scheme) and returns
+// the pivot's final index. QuickSort repeats this on each side of the pivot.
 fun Lomuto_Partition(@init<table> array, low, high): 
     // choose the pivot - last element of sub-array
     @mark<high, highlight, yellow> pivot = array[high]
