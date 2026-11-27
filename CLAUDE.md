@@ -129,12 +129,18 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 
 ### AVP Language Notes
 
-- Python-like syntax with `fun`/`end fun`, `if`/`end if`, `for`/`end for`, `while`/`end while`
-- Newlines are significant (statement separators)
-- Strict 4-space indentation
-- Keywords: `fun`, `for`, `in`, `if`, `else`, `while`, `return`, `break`, `end`, `and`, `or`, `True`, `False`
-- Arrays: `[1, 2, 3]`, `[1 to 5]` (range), `(100)` (size)
-- Comments: `// comment`
+Full reference: `docs/PseudocodeSyntax.md`. The source of truth is the AVP app's grammar and trace interpreter (`app/hooks/interpreter/` in huytran088/algorithm-visualization-project), not `avp_rag/parser/Pseudocode.g4` (see Gotchas).
+
+- Python-like syntax with `fun`/`end fun`, `if`/`else if`/`else`/`end if`, `for`/`end for`, `while`/`end while`, and `do:` ... `while (cond)` (no `end`)
+- Newlines separate statements (`;` also works). Indentation is ignored by the parser; 4 spaces by convention
+- Keywords: `fun`, `for`, `in`, `if`, `else`, `elseif`, `while`, `do`, `return`, `break`, `continue`, `end`, `and`, `or`, `to`, `arr`, `True`/`true`, `False`/`false`, `Null`/`null`
+- Arrays only on the right of `=`: `arr[1, 2, 3]`, `arr[1 to 5]` (range), `arr(100)` / `arr(100, 0)` (size, fill; default 0), `arr[]` (empty). Literal entries must be numbers. No slicing
+- Operators: `+ - * / % **`, `== != < <= > >=`, `and`, `or`; assignment `=`, `+=`, `-=` only. No `not`
+- Built-ins: only `length`/`size`, `floor`, `swap(a[i], a[j])`
+- Scope is per function call: functions can't read globals, and `if`/loops don't create a scope
+- Directives: `@name<args>` at the start of a statement line (or on a parameter), args a single name/number/string — `@init<table>`, `@mark`, `@log`, `@insert`, `@delete`, `@update`, `@swap`, `@sort`
+- Comments: `// comment` or `# comment`
+- Files start with a `// Title` line and a blank line
 
 ## Gotchas
 
