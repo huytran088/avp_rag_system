@@ -34,6 +34,18 @@ def _load_knowledge_base(path: PathLike) -> List[Dict]:
     return chunks
 
 
+def _index_text(item: Dict) -> str:
+    """Text embedded (and reranked) for one function.
+
+    The file title and the comment above the function carry what the code is
+    for (e.g. "the step QuickSort repeats"), which names and code alone don't.
+    """
+    signature = f"Function: {item['name']}({', '.join(item.get('parameters', []))})"
+    about = ": ".join(p for p in (item.get("title"), item.get("description")) if p)
+    head = f"{about}\n" if about else ""
+    return f"{head}{signature}\n{item['code_content']}"
+
+
 def _normalize(vectors: np.ndarray) -> np.ndarray:
     """L2 normalize vectors for cosine similarity."""
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -91,10 +103,7 @@ class CodeRetriever:
         print("Building vector index...")
 
         # Create a searchable text representation per function
-        self.code_texts = [
-            f"Function: {item['name']}({', '.join(item.get('parameters', []))})\n{item['code_content']}"
-            for item in self.knowledge_base
-        ]
+        self.code_texts = [_index_text(item) for item in self.knowledge_base]
 
         embeddings = np.asarray(self.embedding_model.encode(self.code_texts))
         self.embeddings = _normalize(embeddings).astype("float32")
@@ -154,13 +163,14 @@ class CodeRetriever:
                     "function_name": item["name"],
                     "parameters": item.get("parameters", []),
                     "code": item["code_content"],
+                    "text": self.code_texts[idx],
                 }
             )
 
         # Reranking
         if self.use_reranker and self.reranker and candidates:
             # Cross-encoder scoring on (query, code) pairs
-            pairs = [(query, c["code"]) for c in candidates]
+            pairs = [(query, c["text"]) for c in candidates]
             rerank_scores = self.reranker.compute_score(pairs)
             if rerank_scores is None:
                 rerank_scores = []

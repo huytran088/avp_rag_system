@@ -17,12 +17,44 @@ from .tracking import (
 )
 
 
+# Bump when chunk fields change, so run_ingest rebuilds older knowledge bases
+KB_FORMAT = 2
+
+
+def _comment_text(line: str) -> str | None:
+    """Text of a `// comment` line, or None if the line isn't a comment."""
+    stripped = line.strip()
+    return stripped[2:].strip() if stripped.startswith("//") else None
+
+
+def _file_title(lines: List[str]) -> str:
+    """The `// Title` comment on the first line, as used by the AVP app."""
+    return (_comment_text(lines[0]) or "") if lines else ""
+
+
+def _description_above(lines: List[str], func_line: int) -> str:
+    """The comment lines directly above a function (1-based line number).
+
+    A blank line ends the description, and the file's title line never counts.
+    """
+    found: List[str] = []
+    i = func_line - 2
+    while i >= 1:  # line index 0 is the file title
+        text = _comment_text(lines[i])
+        if text is None:
+            break
+        found.append(text)
+        i -= 1
+    return "\n".join(reversed(found))
+
+
 class CodeStructureVisitor(PseudocodeVisitor):
     """Collects every function declaration with its params and full source text."""
 
-    def __init__(self, source_file: str | None = None):
+    def __init__(self, source_file: str | None = None, lines: List[str] | None = None):
         self.functions: List[Dict] = []
         self.source_file = source_file
+        self.lines = lines or []
 
     def visitFunctionDecl(self, ctx):
         func_name = ctx.ID().getText()  # type: ignore[union-attr]
@@ -38,6 +70,8 @@ class CodeStructureVisitor(PseudocodeVisitor):
             "name": func_name,
             "parameters": params,
             "code_content": full_text,
+            "title": _file_title(self.lines),
+            "description": _description_above(self.lines, ctx.start.line),  # type: ignore[union-attr]
         }
         if self.source_file:
             func_data["source_file"] = self.source_file
@@ -51,7 +85,8 @@ def parse_file(file_path: PathLike, source_file: str | None = None) -> List[Dict
     parser = PseudocodeParser(CommonTokenStream(lexer))
     tree = parser.program()
 
-    visitor = CodeStructureVisitor(source_file=source_file)
+    lines = Path(file_path).read_text().splitlines()
+    visitor = CodeStructureVisitor(source_file=source_file, lines=lines)
     visitor.visit(tree)
     return visitor.functions
 
@@ -78,6 +113,10 @@ def run_ingest(
     previous_ingestion = metadata.get("last_ingestion")
 
     changed, unchanged, deleted = detect_changed_files(data_dir, metadata)
+    if metadata.get("kb_format") != KB_FORMAT:
+        # Older chunks lack fields the retriever indexes: re-parse everything
+        changed, unchanged = sorted(set(changed) | set(unchanged)), []
+        existing_chunks = []
     if deleted:
         metadata = remove_deleted_from_metadata(metadata, deleted)
 
@@ -99,6 +138,7 @@ def run_ingest(
         metadata = update_metadata(metadata, key, names)
         extracted[key] = names
 
+    metadata["kb_format"] = KB_FORMAT
     save_kb(chunks, metadata, kb_path)
 
     return IngestResult(
