@@ -141,6 +141,7 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 - **Paths**: never use cwd-relative paths — use `avp_rag.config` (`KB_PATH`, `DATA_DIR`, ...). There is no `os.chdir`/`sys.path` hack in the API anymore
 - **Retriever init is slow (~30s)**: Uses BGE embedding + reranker model loading. API uses lifespan eager init to front-load this
 - **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
+- **Rate-limit client key (`api/dependencies.py`)**: `RATE_LIMIT_IP_SOURCE` picks `x-real-ip` (default, capstone nginx), `x-forwarded-for` (HF Spaces, set in `Dockerfile`, entry `FORWARDED_TRUSTED_HOPS` from the right) or `peer`. Behind a proxy, keying on the peer puts every user in one bucket; trusting a header the proxy doesn't set lets clients forge it. The server logs the X-Forwarded-For entry count once (no addresses) so the hop count can be checked in the Space logs
 - **ANTLR generated files live in `avp_rag/parser/`** and are imported via `from .parser import ...`. `antlr4` (antlr4-tools) is a dev dependency and needs network/Java on first run
 - **`avp_rag/tracking.py`**: Hash-based change detection; `source_files` keys are paths relative to `PROJECT_ROOT` (e.g. `data/foo.avp`)
 - **`KB_FORMAT` in `avp_rag/ingest.py`**: bump it when chunk fields change; `run_ingest()` then rebuilds older knowledge bases instead of keeping stale chunks

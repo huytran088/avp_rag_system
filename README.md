@@ -146,6 +146,8 @@ cp .env.example .env
 | `LLM_MAX_TOKENS` / `LLM_TEMPERATURE` | `1024` / `0.6` | Sampling for `hf` and `gemini` |
 | `EMBEDDING_DEVICE` | `cpu` | Device for embedding + reranker models (`cpu` or `cuda`) |
 | `CORS_ORIGINS` | *(empty)* | Extra comma-separated origins added to `localhost:5173` and `localhost:3000` |
+| `RATE_LIMIT_IP_SOURCE` | `x-real-ip` | Where the per-client rate limit gets the client address: `x-real-ip` (a proxy that overwrites it, like the capstone nginx), `x-forwarded-for` (HF Spaces; set in `Dockerfile`) or `peer` (socket address). Only use a header your proxy sets, or clients can forge it |
+| `FORWARDED_TRUSTED_HOPS` | `1` | With `x-forwarded-for`: which entry to use, counted from the right (the entries a client can forge are on the left) |
 
 ## Usage
 
