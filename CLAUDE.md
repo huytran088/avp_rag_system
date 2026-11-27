@@ -129,18 +129,25 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 
 ### AVP Language Notes
 
-- Python-like syntax with `fun`/`end fun`, `if`/`end if`, `for`/`end for`, `while`/`end while`
-- Newlines are significant (statement separators)
-- Strict 4-space indentation
-- Keywords: `fun`, `for`, `in`, `if`, `else`, `while`, `return`, `break`, `end`, `and`, `or`, `True`, `False`
-- Arrays: `[1, 2, 3]`, `[1 to 5]` (range), `(100)` (size)
-- Comments: `// comment`
+Full reference: `docs/PseudocodeSyntax.md`. The source of truth is the AVP app's grammar and trace interpreter (`app/hooks/interpreter/` in huytran088/algorithm-visualization-project), not `avp_rag/parser/Pseudocode.g4` (see Gotchas).
+
+- Python-like syntax with `fun`/`end fun`, `if`/`else if`/`else`/`end if`, `for`/`end for`, `while`/`end while`, and `do:` ... `while (cond)` (no `end`)
+- Newlines separate statements (`;` also works). Indentation is ignored by the parser; 4 spaces by convention
+- Keywords: `fun`, `for`, `in`, `if`, `else`, `elseif`, `while`, `do`, `return`, `break`, `continue`, `end`, `and`, `or`, `to`, `arr`, `True`/`true`, `False`/`false`, `Null`/`null`
+- Arrays only on the right of `=`: `arr[1, 2, 3]`, `arr[1 to 5]` (range), `arr(100)` / `arr(100, 0)` (size, fill; default 0), `arr[]` (empty). Literal entries must be numbers. No slicing
+- Operators: `+ - * / % **`, `== != < <= > >=`, `and`, `or`; assignment `=`, `+=`, `-=` only. No `not`
+- Built-ins: only `length`/`size`, `floor`, `swap(a[i], a[j])`
+- Scope is per function call: functions can't read globals, and `if`/loops don't create a scope
+- Directives: `@name<args>` at the start of a statement line (or on a parameter), args a single name/number/string — `@init<table>`, `@mark`, `@log`, `@insert`, `@delete`, `@update`, `@swap`, `@sort`
+- Comments: `// comment` or `# comment`
+- Files start with a `// Title` line and a blank line
 
 ## Gotchas
 
 - **Paths**: never use cwd-relative paths — use `avp_rag.config` (`KB_PATH`, `DATA_DIR`, ...). There is no `os.chdir`/`sys.path` hack in the API anymore
 - **Retriever init is slow (~30s)**: Uses BGE embedding + reranker model loading. API uses lifespan eager init to front-load this
 - **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
+- **`avp_rag/parser/Pseudocode.g4` lags the app's grammar**: it is only used to ingest `data/*.avp` and lacks `!=`, `do`/`while`, `continue`, `#` comments, `elseif` and lowercase `null`. A data file using them fails to ingest (`IngestResult.failed`). Keep `data/` to the shared subset, or port the app grammar
 - **ANTLR generated files live in `avp_rag/parser/`** and are imported via `from .parser import ...`. `antlr4` (antlr4-tools) is a dev dependency and needs network/Java on first run
 - **`avp_rag/tracking.py`**: Hash-based change detection; `source_files` keys are paths relative to `PROJECT_ROOT` (e.g. `data/foo.avp`)
 - **`KB_FORMAT` in `avp_rag/ingest.py`**: bump it when chunk fields change; `run_ingest()` then rebuilds older knowledge bases instead of keeping stale chunks
