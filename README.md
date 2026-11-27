@@ -192,7 +192,7 @@ Opens at `http://localhost:5173` with an API proxy to the backend.
 ### 6. Regenerate the Parser (after grammar changes)
 
 ```bash
-cd avp_rag/parser && uv run antlr4 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
+cd avp_rag/parser && uv run antlr4 -v 4.13.2 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
 ```
 
 ## API Reference

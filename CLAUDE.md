@@ -11,7 +11,7 @@ This is a RAG (Retrieval-Augmented Generation) system for generating code in the
 **Regenerate ANTLR parser files from grammar:**
 
 ```bash
-cd avp_rag/parser && uv run antlr4 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
+cd avp_rag/parser && uv run antlr4 -v 4.13.2 -Dlanguage=Python3 -visitor -no-listener Pseudocode.g4
 ```
 
 **Ingest AVP files into knowledge base:**
@@ -123,13 +123,13 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 
 ### ANTLR Components
 
-- `avp_rag/parser/Pseudocode.g4`: Grammar definition for the AVP language (language reference: `docs/PseudocodeSyntax.md`)
+- `avp_rag/parser/Pseudocode.g4`: Grammar definition for the AVP language, copied from the app (language reference: `docs/PseudocodeSyntax.md`)
 - `avp_rag/parser/PseudocodeLexer.py`, `PseudocodeParser.py`, `PseudocodeVisitor.py`: Generated parser files (regenerate after grammar changes; no listener is generated)
 - Runtime: `antlr4-python3-runtime==4.13.2`, tooling: `antlr4-tools==0.2.2` (latest as of 2026-04-23)
 
 ### AVP Language Notes
 
-Full reference: `docs/PseudocodeSyntax.md`. The source of truth is the AVP app's grammar and trace interpreter (`app/hooks/interpreter/` in huytran088/algorithm-visualization-project), not `avp_rag/parser/Pseudocode.g4` (see Gotchas).
+Full reference: `docs/PseudocodeSyntax.md`. The source of truth is the AVP app's grammar and trace interpreter (`app/hooks/interpreter/` in huytran088/algorithm-visualization-project); `avp_rag/parser/Pseudocode.g4` is a copy of that grammar (see Gotchas).
 
 - Python-like syntax with `fun`/`end fun`, `if`/`else if`/`else`/`end if`, `for`/`end for`, `while`/`end while`, and `do:` ... `while (cond)` (no `end`)
 - Newlines separate statements (`;` also works). Indentation is ignored by the parser; 4 spaces by convention
@@ -148,6 +148,7 @@ Full reference: `docs/PseudocodeSyntax.md`. The source of truth is the AVP app's
 - **Retriever init is slow (~30s)**: Uses BGE embedding + reranker model loading. API uses lifespan eager init to front-load this
 - **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
 - **Rate-limit client key (`api/dependencies.py`)**: `RATE_LIMIT_IP_SOURCE` picks `x-real-ip` (default, capstone nginx), `x-forwarded-for` (HF Spaces, set in `Dockerfile`, entry `FORWARDED_TRUSTED_HOPS` from the right) or `peer`. Behind a proxy, keying on the peer puts every user in one bucket; trusting a header the proxy doesn't set lets clients forge it. The server logs the X-Forwarded-For entry count once (no addresses) so the hop count can be checked in the Space logs
+- **`avp_rag/parser/Pseudocode.g4` is a byte-for-byte copy of the app's grammar** (`app/hooks/interpreter/Pseudocode.g4` in huytran088/algorithm-visualization-project, copied at app commit `4f046f4`). Don't edit it here: change the app's grammar, copy it over, regenerate (command above, pinned to `-v 4.13.2` so `antlr4-tools` doesn't need to look up the latest version), then run `tests/test_grammar.py`. The generated Python names the `from=` label `from_` (a Python keyword)
 - **ANTLR generated files live in `avp_rag/parser/`** and are imported via `from .parser import ...`. `antlr4` (antlr4-tools) is a dev dependency and needs network/Java on first run
 - **`avp_rag/tracking.py`**: Hash-based change detection; `source_files` keys are paths relative to `PROJECT_ROOT` (e.g. `data/foo.avp`)
 - **`KB_FORMAT` in `avp_rag/ingest.py`**: bump it when chunk fields change; `run_ingest()` then rebuilds older knowledge bases instead of keeping stale chunks
