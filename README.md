@@ -65,8 +65,8 @@ The same backend can also run on a self-hosted GPU server with a local vLLM mode
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Ingest**: `run_ingest()` hashes each `.avp` file in `data/`, re-parses only changed files, extracts every function declaration (name, parameters, full source text, source file) and saves the knowledge base with tracking metadata. Deleted files are pruned.
-2. **Retrieve**: `CodeRetriever` embeds `"Function: name(params)\n<code>"` for every function, L2-normalizes the vectors and indexes them in FAISS. A query fetches `k × 3` candidates, which the cross-encoder reranks down to `k`. Models run on `EMBEDDING_DEVICE` (default `cpu`; fp16 on `cuda`).
+1. **Ingest**: `run_ingest()` hashes each `.avp` file in `data/`, re-parses only changed files, extracts every function declaration (name, parameters, full source text, source file, plus the file title and the `//` comment directly above the function) and saves the knowledge base with tracking metadata. Deleted files are pruned, and a knowledge base from an older format (`kb_format`) is rebuilt.
+2. **Retrieve**: `CodeRetriever` embeds `"<title>: <description>\nFunction: name(params)\n<code>"` for every function (the reranker scores the same text), L2-normalizes the vectors and indexes them in FAISS. A query fetches `k × 3` candidates, which the cross-encoder reranks down to `k`. Models run on `EMBEDDING_DEVICE` (default `cpu`; fp16 on `cuda`). Queries are serialized with a lock, because HF fast tokenizers are not thread-safe.
 3. **Generate**: `build_context()` retrieves once (default `k=2`) and builds a prompt with the reference code and AVP syntax rules. `generate_code()` sends it to the configured provider. Qwen-style `<think>` blocks are stripped from the output.
 
 ### Python Package (`avp_rag/`)
