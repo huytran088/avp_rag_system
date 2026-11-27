@@ -94,3 +94,34 @@ def test_retrieve_can_disable_reranker(eval_client):
     c.post("/retrieve", json={"query": "q", "k": 5})
     assert seen == [False, True]
     assert retriever.use_reranker is True
+
+
+def test_generate_with_grammar_constrains_vllm():
+    """grammar=true sends evals/avp.gbnf to vLLM as a structured-output grammar."""
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = MOCK_RETRIEVE_RESULT
+    client = MagicMock()
+    client.chat.completions.create.return_value.choices = [
+        MagicMock(message=MagicMock(content="result = 1\n"))
+    ]
+    env = {"LLM_PROVIDER": "vllm", "VLLM_BASE_URL": "http://x/v1", "VLLM_MODEL": "m"}
+    with (
+        patch("avp_rag.retrieve._retriever", mock_retriever),
+        patch("evals.server.openai.OpenAI", return_value=client),
+        patch.dict(os.environ, env),
+    ):
+        from evals.server import GRAMMAR, app
+
+        with TestClient(app) as c:
+            body = c.post("/generate", json={"query": "q", "grammar": True}).json()
+    kwargs = client.chat.completions.create.call_args.kwargs
+    assert kwargs["model"] == "m"
+    assert kwargs["extra_body"]["structured_outputs"] == {"grammar": GRAMMAR}
+    assert body["generated_code"] == "result = 1\n"
+    assert body["grammar"] is True
+
+
+def test_grammar_needs_the_vllm_provider(eval_client):
+    c, _, _ = eval_client
+    r = c.post("/generate", json={"query": "q", "grammar": True})
+    assert r.status_code == 400

@@ -15,6 +15,9 @@ import os
 import threading
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+import openai
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -35,6 +38,9 @@ _MODEL_ENV = {
 }
 _TEMPERATURE_ENV = {"vllm": "VLLM_TEMPERATURE"}
 
+# Pseudocode.g4 as GBNF, for the constrained-decoding experiment
+GRAMMAR = Path(__file__).with_name("avp.gbnf").read_text()
+
 # Flipping use_reranker must not interleave with another request's retrieval
 _rerank_lock = threading.Lock()
 
@@ -42,6 +48,31 @@ _rerank_lock = threading.Lock()
 def call_llm(prompt: str) -> str:
     """The configured provider only: an outage must show up as a failed sample."""
     return providers._get_provider_fn(providers.get_provider_name())(prompt)
+
+
+def call_vllm_with_grammar(prompt: str) -> str:
+    """providers._call_vllm's request, constrained to the AVP grammar.
+
+    vLLM's structured outputs (xgrammar backend) only allow tokens that keep
+    the output inside the grammar, so it can't produce a syntax error, short
+    of running out of tokens.
+    """
+    client = openai.OpenAI(
+        base_url=os.environ.get("VLLM_BASE_URL", "http://localhost:8001/v1"),
+        api_key=os.environ.get("VLLM_API_KEY", "token-placeholder"),
+    )
+    response = client.chat.completions.create(
+        model=os.environ.get("VLLM_MODEL", "qwen3.6-27b-awq"),
+        max_tokens=int(os.environ.get("VLLM_MAX_TOKENS", "1024")),
+        temperature=float(os.environ.get("VLLM_TEMPERATURE", "0.6")),
+        top_p=float(os.environ.get("VLLM_TOP_P", "0.95")),
+        messages=[{"role": "user", "content": prompt}],
+        extra_body={
+            "top_k": int(os.environ.get("VLLM_TOP_K", "20")),
+            "structured_outputs": {"grammar": GRAMMAR},
+        },
+    )
+    return response.choices[0].message.content or ""
 
 
 def _model_info() -> dict:
@@ -70,6 +101,7 @@ class GenerateBody(BaseModel):
     instructions: str | None = None
     rag: bool = True
     k: int = Field(default=2, ge=1, le=10)
+    grammar: bool = False
 
 
 class RetrieveBody(BaseModel):
@@ -90,6 +122,8 @@ def _retrieve(query: str, k: int, rerank: bool = True):
 
 @app.post("/generate")
 def generate(body: GenerateBody):
+    if body.grammar and providers.get_provider_name() != "vllm":
+        raise HTTPException(status_code=400, detail="grammar needs LLM_PROVIDER=vllm")
     snippets = []
     if body.rag:
         search = f"{body.query}\n\n{body.code}" if body.code else body.query
@@ -98,7 +132,7 @@ def generate(body: GenerateBody):
 
     start = time.perf_counter()
     try:
-        text = call_llm(prompt)
+        text = call_vllm_with_grammar(prompt) if body.grammar else call_llm(prompt)
     except Exception as e:  # Reported per sample, not retried
         raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}") from e
     latency_ms = (time.perf_counter() - start) * 1000
@@ -108,6 +142,7 @@ def generate(body: GenerateBody):
         "retrieved_functions": [s["function_name"] for s in snippets],
         "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
         "latency_ms": latency_ms,
+        "grammar": body.grammar,
         **_model_info(),
     }
 
