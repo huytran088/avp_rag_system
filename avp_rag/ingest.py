@@ -59,7 +59,7 @@ class CodeStructureVisitor(PseudocodeVisitor):
     def visitFunctionDecl(self, ctx):
         func_name = ctx.ID().getText()  # type: ignore[union-attr]
 
-        params = [p.ID().getText() for p in ctx.paramList().annotatedParam()] if ctx.paramList() else []  # type: ignore[union-attr,misc]
+        params = [p.ID().getText() for p in ctx.paramList().param()] if ctx.paramList() else []  # type: ignore[union-attr,misc]
 
         # Full source text of this function, for the LLM to read later
         input_stream = ctx.start.getInputStream()  # type: ignore[union-attr]
