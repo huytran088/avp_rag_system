@@ -22,15 +22,16 @@ Here is the strict syntax definition based on existing codebase examples:
 {reference_block}
 --- REFERENCE CODE END ---
 
-Using the syntax and style from the reference code above, write a new AVP function to solve this task:
+Using the syntax and style from the reference code above, write a complete AVP program to solve this task:
 TASK: {user_request}
 
 Rules:
 1. Use strict 4-space indentation.
 2. Use 'fun name(args): ... end fun' syntax.
 3. Only use standard keywords (if, while, for, etc.) seen in the reference.
-4. Always include a function call after the function definition (e.g. result = function_name(args)).
-5. Do not explain, just output the code with detailed comments.
+4. The reference code is only an example and is not available to your program: define every function the program calls.
+5. Always include a function call after the function definitions (e.g. result = function_name(args)).
+6. Do not explain, just output the code with detailed comments.
 """
     if code:
         prompt += (
