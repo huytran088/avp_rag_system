@@ -1,4 +1,5 @@
 import os
+import threading
 import warnings
 from typing import Dict, List, Optional
 
@@ -33,6 +34,18 @@ def _load_knowledge_base(path: PathLike) -> List[Dict]:
     return chunks
 
 
+def _index_text(item: Dict) -> str:
+    """Text embedded (and reranked) for one function.
+
+    The file title and the comment above the function carry what the code is
+    for (e.g. "the step QuickSort repeats"), which names and code alone don't.
+    """
+    signature = f"Function: {item['name']}({', '.join(item.get('parameters', []))})"
+    about = ": ".join(p for p in (item.get("title"), item.get("description")) if p)
+    head = f"{about}\n" if about else ""
+    return f"{head}{signature}\n{item['code_content']}"
+
+
 def _normalize(vectors: np.ndarray) -> np.ndarray:
     """L2 normalize vectors for cosine similarity."""
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -59,6 +72,9 @@ class CodeRetriever:
             device = os.environ.get("EMBEDDING_DEVICE", "cpu")
         self.device = device
         self.use_reranker = use_reranker
+        # HF fast tokenizers aren't thread-safe ("Already borrowed"), and the
+        # API runs retrieval in worker threads, so one query at a time
+        self._lock = threading.Lock()
         self.knowledge_base = _load_knowledge_base(knowledge_base_path)
 
         # Init the Embedding Model
@@ -87,10 +103,7 @@ class CodeRetriever:
         print("Building vector index...")
 
         # Create a searchable text representation per function
-        self.code_texts = [
-            f"Function: {item['name']}({', '.join(item.get('parameters', []))})\n{item['code_content']}"
-            for item in self.knowledge_base
-        ]
+        self.code_texts = [_index_text(item) for item in self.knowledge_base]
 
         embeddings = np.asarray(self.embedding_model.encode(self.code_texts))
         self.embeddings = _normalize(embeddings).astype("float32")
@@ -122,6 +135,10 @@ class CodeRetriever:
         Returns:
             List of dicts with keys: score, function_name, parameters, code
         """
+        with self._lock:
+            return self._retrieve(query, k, rerank_top_k)
+
+    def _retrieve(self, query: str, k: int, rerank_top_k: Optional[int]) -> List[Dict]:
         # Determine how many candidates to fetch for reranking
         if rerank_top_k is None:
             rerank_top_k = k * 3 if self.use_reranker else k
@@ -146,13 +163,14 @@ class CodeRetriever:
                     "function_name": item["name"],
                     "parameters": item.get("parameters", []),
                     "code": item["code_content"],
+                    "text": self.code_texts[idx],
                 }
             )
 
         # Reranking
         if self.use_reranker and self.reranker and candidates:
             # Cross-encoder scoring on (query, code) pairs
-            pairs = [(query, c["code"]) for c in candidates]
+            pairs = [(query, c["text"]) for c in candidates]
             rerank_scores = self.reranker.compute_score(pairs)
             if rerank_scores is None:
                 rerank_scores = []

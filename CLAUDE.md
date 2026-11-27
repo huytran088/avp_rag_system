@@ -143,6 +143,10 @@ All backend logic lives in the `avp_rag` package; `api/` imports from it.
 - **slowapi requires `request: Request`** in route handler signatures even if unused — it inspects the parameter
 - **ANTLR generated files live in `avp_rag/parser/`** and are imported via `from .parser import ...`. `antlr4` (antlr4-tools) is a dev dependency and needs network/Java on first run
 - **`avp_rag/tracking.py`**: Hash-based change detection; `source_files` keys are paths relative to `PROJECT_ROOT` (e.g. `data/foo.avp`)
+- **`KB_FORMAT` in `avp_rag/ingest.py`**: bump it when chunk fields change; `run_ingest()` then rebuilds older knowledge bases instead of keeping stale chunks
+- **Function descriptions drive retrieval**: the `//` comment directly above a function in `data/*.avp` (no blank line between) is embedded with it, so describe what each function is for (e.g. "QuickSort repeats this")
+- **`CodeRetriever.retrieve` holds a lock**: HF fast tokenizers aren't thread-safe and the API calls retrieval from worker threads ("Already borrowed" 500s without it)
+- **`data/*.avp` use CRLF line endings**: edit them byte-exactly; rewriting with LF shows every line as changed
 - **Mock patch targets**: patch `avp_rag.retrieve._retriever`, `avp_rag.generate.call_llm`, `avp_rag.providers._call_*`. `api/routes.py` calls `retrieval.retrieve_code`/`generation.generate_code` via module attributes so these patches take effect
 - **React 19 event types**: Named exports (`FormEvent`, `KeyboardEvent`) are deprecated — use `React.FormEvent` or structural types
 - **Tailwind CSS v4**: Uses `@import "tailwindcss"` in CSS, no `tailwind.config.js`

@@ -2,6 +2,8 @@
 
 a1 = arr[43, 7, 82, 15, 61, 29, 74, 3, 50, 38]
 
+// Partitions an array around its first element with two pointers moving
+// inward (Hoare scheme). QuickSort repeats this on each part.
 fun Hoare_Partition(@init<table> array, low, high): 
     // choose the pivot - first element of sub-array
     @mark<low, highlight, yellow> pivot = array[low]

@@ -28,6 +28,15 @@ class TestBuildPrompt:
         assert "CURRENT CODE" not in prompt
         assert "Additional rules" not in prompt
 
+    def test_asks_for_a_complete_program(self):
+        """The model used to call reference functions it never defined."""
+        from avp_rag.generate import build_prompt
+
+        prompt = build_prompt("QuickSort", MOCK_RETRIEVE_RESULT)
+        assert "write a complete AVP program" in prompt
+        assert "write a new AVP function" not in prompt
+        assert "define every function the program calls" in prompt
+
     def test_code_and_instructions_get_their_own_sections(self):
         from avp_rag.generate import build_prompt
 

@@ -2,6 +2,7 @@
 
 a1 = arr[1, 10, 5, 6, 4, 7, 19]
 
+// Sorts an array by counting, for each value, how many values are smaller
 fun Comparison_Counting_Sort(@init<table> array): 
     n = length(array)
 
