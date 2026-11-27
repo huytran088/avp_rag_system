@@ -1,0 +1,279 @@
+[
+  {
+    "id": "bubble_sort",
+    "query": "Write Bubble Sort.",
+    "expected": [
+      "Bubble_Sort"
+    ]
+  },
+  {
+    "id": "bubble_sort_early_exit",
+    "query": "Write Bubble Sort that stops as soon as a pass makes no swaps.",
+    "expected": [
+      "Bubble_Sort"
+    ]
+  },
+  {
+    "id": "selection_sort",
+    "query": "Write Selection Sort.",
+    "expected": [
+      "Selection_Sort"
+    ]
+  },
+  {
+    "id": "selection_sort_descending",
+    "query": "Sort the array in descending order with Selection Sort.",
+    "expected": [
+      "Selection_Sort"
+    ]
+  },
+  {
+    "id": "insertion_sort",
+    "query": "Write Insertion Sort.",
+    "expected": [
+      "Insertion_Sort"
+    ]
+  },
+  {
+    "id": "comparison_counting_sort",
+    "query": "Write Comparison Counting Sort: for each element, count the elements smaller than it, then place each element at its count. Copy the result back so the visualized array ends sorted.",
+    "expected": [
+      "Comparison_Counting_Sort"
+    ]
+  },
+  {
+    "id": "distribution_counting_sort",
+    "query": "Write Counting Sort for values between 0 and 9: count how many times each value occurs, then rewrite the array in order.",
+    "expected": []
+  },
+  {
+    "id": "quick_sort_lomuto",
+    "query": "Write Quick Sort using the Lomuto partition scheme with the last element as the pivot.",
+    "expected": [
+      "Lomuto_Partition"
+    ]
+  },
+  {
+    "id": "quick_sort_hoare",
+    "query": "Write Quick Sort using Hoare's partition with the first element as the pivot.",
+    "expected": [
+      "Hoare_Partition"
+    ]
+  },
+  {
+    "id": "quick_sort",
+    "query": "Write QuickSort.",
+    "expected": [
+      "Lomuto_Partition",
+      "Hoare_Partition"
+    ]
+  },
+  {
+    "id": "merge_sort",
+    "query": "Write Merge Sort. Merge into a temporary array and copy back so the visualized array ends sorted.",
+    "expected": []
+  },
+  {
+    "id": "heap_sort",
+    "query": "Write Heap Sort that builds a max heap in the array itself.",
+    "expected": []
+  },
+  {
+    "id": "shell_sort",
+    "query": "Write Shell Sort with gaps n/2, n/4, ..., 1.",
+    "expected": [
+      "Insertion_Sort"
+    ]
+  },
+  {
+    "id": "cocktail_sort",
+    "query": "Write Cocktail Shaker Sort, a bubble sort that alternates passes left-to-right and right-to-left.",
+    "expected": [
+      "Bubble_Sort"
+    ]
+  },
+  {
+    "id": "gnome_sort",
+    "query": "Write Gnome Sort.",
+    "expected": [
+      "Insertion_Sort"
+    ]
+  },
+  {
+    "id": "odd_even_sort",
+    "query": "Write Odd-Even Transposition Sort.",
+    "expected": [
+      "Bubble_Sort"
+    ]
+  },
+  {
+    "id": "dutch_national_flag",
+    "query": "Sort an array of 0s, 1s and 2s in a single pass with three pointers (Dutch national flag problem).",
+    "expected": []
+  },
+  {
+    "id": "linear_search",
+    "query": "Write Linear Search: return the index of the first occurrence of the target, or -1 if it is not in the array.",
+    "expected": [
+      "Linear_Search"
+    ]
+  },
+  {
+    "id": "last_occurrence",
+    "query": "Search the array from the end and return the index of the last occurrence of the target, or -1 if it is absent.",
+    "expected": [
+      "Linear_Search"
+    ]
+  },
+  {
+    "id": "binary_search",
+    "query": "Write iterative Binary Search on a sorted array: return an index of the target, or -1 if it is not found.",
+    "expected": [
+      "Binary_Search"
+    ]
+  },
+  {
+    "id": "binary_search_recursive",
+    "query": "Write recursive Binary Search on a sorted array: return an index of the target, or -1 if it is not found.",
+    "expected": [
+      "Binary_Search"
+    ]
+  },
+  {
+    "id": "interpolation_search",
+    "query": "Write Interpolation Search on a sorted array: return an index of the target, or -1 if it is not found.",
+    "expected": [
+      "Binary_Search"
+    ]
+  },
+  {
+    "id": "lower_bound",
+    "query": "In a sorted array, use binary search to find the first index whose value is greater than or equal to the target. Return the array length if there is none.",
+    "expected": [
+      "Binary_Search"
+    ]
+  },
+  {
+    "id": "count_occurrences",
+    "query": "Count how many times the target occurs in the array and return the count.",
+    "expected": [
+      "Linear_Search"
+    ]
+  },
+  {
+    "id": "lomuto_partition",
+    "query": "Partition the whole array around its last element with the Lomuto scheme and return the pivot's final index.",
+    "expected": [
+      "Lomuto_Partition"
+    ]
+  },
+  {
+    "id": "hoare_partition",
+    "query": "Partition the whole array around its first element with Hoare's scheme, put the pivot at its final position, and return that index.",
+    "expected": [
+      "Hoare_Partition"
+    ]
+  },
+  {
+    "id": "even_odd_partition",
+    "query": "Rearrange the array in place so all even numbers come before all odd numbers, using two pointers.",
+    "expected": [
+      "Hoare_Partition"
+    ]
+  },
+  {
+    "id": "move_zeros",
+    "query": "Move all zeros to the end of the array in place, keeping the other numbers in their original order.",
+    "expected": []
+  },
+  {
+    "id": "reverse_array",
+    "query": "Reverse the array in place using two pointers that move toward each other.",
+    "expected": []
+  },
+  {
+    "id": "rotate_left",
+    "query": "Rotate the array left by k positions in place, using three reversals.",
+    "expected": []
+  },
+  {
+    "id": "prefix_sums",
+    "query": "Replace each element with the sum of all elements up to and including it, in place.",
+    "expected": [
+      "sum_array"
+    ]
+  },
+  {
+    "id": "remove_duplicates_sorted",
+    "query": "Remove duplicates from a sorted array in place: move the distinct values to the front and return how many there are.",
+    "expected": [
+      "check_unique"
+    ]
+  },
+  {
+    "id": "two_sum_sorted",
+    "query": "In a sorted array, find two different positions whose values add up to the target using two pointers. Return them as an array of two indices, or arr[-1, -1] if there is no such pair.",
+    "expected": []
+  },
+  {
+    "id": "is_palindrome",
+    "query": "Check whether the array reads the same forwards and backwards using two pointers. Return true or false.",
+    "expected": [
+      "check_unique"
+    ]
+  },
+  {
+    "id": "max_element",
+    "query": "Find the largest value in a non-empty array and return it.",
+    "expected": [
+      "max_value"
+    ]
+  },
+  {
+    "id": "min_and_max",
+    "query": "Find both the smallest and the largest value of a non-empty array in one pass. Return them as an array [min, max].",
+    "expected": [
+      "max_value"
+    ]
+  },
+  {
+    "id": "sum_array",
+    "query": "Add up all the values in the array and return the total.",
+    "expected": [
+      "sum_array"
+    ]
+  },
+  {
+    "id": "unique_elements",
+    "query": "Check whether all the elements of the array are distinct by comparing every pair. Return true or false.",
+    "expected": [
+      "check_unique"
+    ]
+  },
+  {
+    "id": "count_inversions",
+    "query": "Count the inversions in the array by checking every pair: an inversion is a pair i < j with a[i] > a[j]. Return the count.",
+    "expected": [
+      "check_unique"
+    ]
+  },
+  {
+    "id": "majority_element",
+    "query": "Find the majority element (one that occurs more than n/2 times) with the Boyer-Moore voting algorithm and a checking pass. Return it, or -1 if there is none.",
+    "expected": []
+  },
+  {
+    "id": "quickselect",
+    "query": "Write Quickselect with Lomuto partitioning to find the k-th smallest element (k counts from 1) and return it.",
+    "expected": [
+      "Lomuto_Partition"
+    ]
+  },
+  {
+    "id": "max_subarray",
+    "query": "Find the largest sum of a contiguous, non-empty subarray in linear time (Kadane's algorithm) and return it.",
+    "expected": [
+      "sum_array"
+    ]
+  }
+]

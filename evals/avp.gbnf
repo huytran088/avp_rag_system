@@ -1,0 +1,66 @@
+# AVP pseudocode as a GBNF / xgrammar EBNF grammar, for constrained decoding.
+#
+# A hand translation of avp_rag/parser/Pseudocode.g4 (the app's grammar).
+# ANTLR skips spaces and comments between tokens; here they are explicit:
+# `sp` is optional spaces, `sp1` required ones (between words), and `eol`
+# ends a line, with an optional comment. It is a little stricter than the
+# ANTLR grammar (every statement ends a line or a `;`, keywords are followed
+# by a space or a parenthesis, `to`/`and`/`or` have spaces around them), so
+# anything it accepts should also parse in the app. It does not exclude
+# keywords from identifiers. tests/test_gbnf.py checks it against data/*.avp.
+
+root ::= gap* statement* tail?
+tail ::= sp (meta sp)* core sp
+
+sp ::= [ \t]*
+sp1 ::= [ \t]+
+comment ::= ("//" | "#") [^\r\n]*
+eol ::= sp comment? "\r"? "\n"
+gap ::= eol
+nlsp ::= (sp comment? "\r"? "\n")* sp
+
+statement ::= sp (meta sp)* core sp (";" sp)* eol gap*
+core ::= assignment | function-decl | call | for-each | for-loop | do-while | if-stmt | while-loop | return-stmt | "break" | "continue"
+block ::= gap* statement*
+
+meta ::= "@" id sp "<" sp meta-params? sp ">"
+meta-params ::= meta-param (sp "," sp meta-param)*
+meta-param ::= id | float | int | string
+
+assignment ::= assignable sp ("=" | "+=" | "-=") sp (array-init | expr)
+assignable ::= id | id sp "[" sp expr sp "]"
+array-init ::= "arr" sp "[" nlsp expr sp1 "to" sp1 nlsp expr nlsp "]" | "arr" sp "(" nlsp expr (sp "," nlsp expr)? nlsp ")" | "arr" sp "[" nlsp expr-list? nlsp "]"
+
+function-decl ::= "fun" sp1 id sp "(" sp params? sp ")" sp ":" eol block sp "end" sp1 "fun"
+params ::= param (sp "," sp param)*
+param ::= (meta sp)* id
+
+cond ::= sp "(" sp expr sp ")" | sp1 expr
+for-each ::= "for" sp (meta sp)* (sp "(" sp id sp1 "in" sp1 id sp ")" | sp1 id sp1 "in" sp1 id) sp ":" eol block sp "end" sp1 "for"
+for-loop ::= "for" sp (meta sp)* "(" sp assignment sp sep sp expr sp sep sp assignment sp ")" sp ":" eol block sp "end" sp1 "for"
+sep ::= "," | ";"
+while-loop ::= "while" cond sp ":" eol block sp "end" sp1 "while"
+do-while ::= "do" (sp ":")? eol block sp "while" sp "(" sp expr sp ")"
+if-stmt ::= "if" cond sp ":" eol block (sp else-if cond sp ":" eol block)* (sp "else" sp ":" eol block)? sp "end" sp1 "if"
+else-if ::= "else if" | "elseif"
+
+call ::= id sp "(" sp expr-list? sp ")"
+return-stmt ::= "return" sp1 expr | "return" sp "(" sp expr sp ")" (sp binop sp expr)?
+
+expr-list ::= expr (sp "," nlsp expr)*
+expr ::= and-expr (sp1 "or" sp1 and-expr)*
+and-expr ::= cmp-expr (sp1 "and" sp1 cmp-expr)*
+cmp-expr ::= add-expr (sp cmp-op sp add-expr)*
+cmp-op ::= "==" | "!=" | "<=" | ">=" | "<" | ">"
+add-expr ::= mul-expr (sp [+-] sp mul-expr)*
+mul-expr ::= pow-expr (sp [*/%] sp pow-expr)*
+pow-expr ::= unary (sp "**" sp unary)*
+unary ::= "-" sp unary | primary
+primary ::= "(" sp expr sp ")" | id sp "(" sp expr-list? sp ")" | id sp "[" sp expr sp "]" | atom
+binop ::= cmp-op | [+*/%-] | "**"
+atom ::= id | float | int | string
+
+id ::= [a-zA-Z_] [a-zA-Z_0-9]*
+int ::= [0-9]+
+float ::= [0-9]+ "." [0-9]+
+string ::= "\"" [^"\r\n]* "\""
